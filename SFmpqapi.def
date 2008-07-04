@@ -1,0 +1,111 @@
+; License information for this code is in license.txt
+
+EXPORTS
+	MpqInitialize=MpqInitialize @1
+	MpqGetVersion=MpqGetVersion @2
+	MpqGetVersionString=MpqGetVersionString @3
+
+	SFMpqGetVersionString=SFMpqGetVersionString @8
+	SFMpqGetVersion=SFMpqGetVersion @9
+	SFMpqGetVersionString2=SFMpqGetVersionString2 @10
+	SFMpqDestroy=SFMpqDestroy @11
+	AboutSFMpq=AboutSFMpq @12
+
+	MpqOpenArchiveForUpdate=MpqOpenArchiveForUpdate @16
+	MpqCloseUpdatedArchive=MpqCloseUpdatedArchive @17
+	MpqAddFileToArchive=MpqAddFileToArchive @18
+	MpqAddWaveToArchive=MpqAddWaveToArchive @19
+	MpqRenameFile=MpqRenameFile @20
+	MpqDeleteFile=MpqDeleteFile @21
+	MpqCompactArchive=MpqCompactArchive @22
+
+	MpqAddFileFromBuffer=MpqAddFileFromBuffer @23
+	MpqSetFileLocale=MpqSetFileLocale @24
+	MpqAddWaveFromBuffer=MpqAddWaveFromBuffer @25
+	MpqAddFileToArchiveEx=MpqAddFileToArchiveEx @26
+	MpqAddFileFromBufferEx=MpqAddFileFromBufferEx @27
+	MpqRenameAndSetFileLocale=MpqRenameAndSetFileLocale @28
+	MpqDeleteFileWithLocale=MpqDeleteFileWithLocale @29
+	MpqOpenArchiveForUpdateEx=MpqOpenArchiveForUpdateEx @30
+
+;Lmpqapi ordinals
+	SFOpenArchive=SFileOpenArchive @32 NONAME
+	SFCloseArchive=SFileCloseArchive @33 NONAME
+	SFOpenFileEx=SFileOpenFileEx @34 NONAME
+	SFCloseFile=SFileCloseFile @35 NONAME
+	SFGetFileSize=SFileGetFileSize @36 NONAME
+	SFileGetFileInfo=SFileGetFileInfo @37
+	SFSetFilePointer=SFileSetFilePointer @38 NONAME
+	SFReadFile=SFileReadFile @39 NONAME
+	SFSetLocale=SFileSetLocale @40 NONAME
+
+	SFOpenFile=SFileOpenFile @41 NONAME
+	SFileSetArchivePriority=SFileSetArchivePriority @42
+	SFileFindMpqHeader=SFileFindMpqHeader @43
+	SFileListFiles=SFileListFiles @44
+
+;Old Diablo Storm ordinals
+	SFDCloseArchive=SFileCloseArchive @63 NONAME
+	SFDCloseFile=SFileCloseFile @64 NONAME
+	SFDDestroy=SFileDestroy @73 NONAME
+	SFDGetFileArchive=SFileGetFileArchive @75 NONAME
+	SFDGetFileSize=SFileGetFileSize @76 NONAME
+	SFDOpenArchive=SFileOpenArchive @77 NONAME
+	SFDOpenFile=SFileOpenFile @78 NONAME
+	SFDOpenFileEx=SFileOpenFileEx @79 NONAME
+	SFDReadFile=SFileReadFile @80 NONAME
+	SFDSetBasePath=SFileSetBasePath @81 NONAME
+	SFDSetFilePointer=SFileSetFilePointer @82 NONAME
+	SFDSetLocale=SFileSetLocale @83 NONAME
+	SFDGetBasePath=SFileGetBasePath @84 NONAME
+	SFDGetArchiveName=SFileGetArchiveName @86 NONAME
+	SFDGetFileName=SFileGetFileName @87 NONAME
+	DStormDestroy=StormDestroy @112 NONAME
+
+;Storm ordinals
+	SFileCloseArchive=SFileCloseArchive @252
+	SFileCloseFile=SFileCloseFile @253
+	SFileDestroy=SFileDestroy @262
+	SFileGetFileArchive=SFileGetFileArchive @264
+	SFileGetFileSize=SFileGetFileSize @265
+	SFileOpenArchive=SFileOpenArchive @266
+	SFileOpenFile=SFileOpenFile @267
+	SFileOpenFileEx=SFileOpenFileEx @268
+	SFileReadFile=SFileReadFile @269
+	SFileSetBasePath=SFileSetBasePath @270
+	SFileSetFilePointer=SFileSetFilePointer @271
+	SFileSetLocale=SFileSetLocale @272
+	SFileGetBasePath=SFileGetBasePath @273
+	SFileGetArchiveName=SFileGetArchiveName @275
+	SFileGetFileName=SFileGetFileName @276
+	SFileOpenFileAsArchive=SFileOpenFileAsArchive @293
+	StormDestroy=StormDestroy @301
+	SCompCompress=SCompCompress @551 NONAME
+	SCompDecompress=SCompDecompress @552 NONAME
+
+;Zlib exports
+	adler32
+	compress
+	crc32
+	deflate
+	deflateCopy
+	deflateEnd
+	deflateInit2_
+	deflateInit_
+	deflateParams
+	deflateReset
+	deflateSetDictionary
+	inflate
+	inflateEnd
+	inflateInit2_
+	inflateInit_
+	inflateReset
+	inflateSetDictionary
+	inflateSync
+	uncompress
+	zlibVersion
+	zError
+	inflateSyncPoint
+	get_crc_table
+	compress2
+

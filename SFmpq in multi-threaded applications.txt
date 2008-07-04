@@ -1,0 +1,73 @@
+====================================
+SFmpq in multi-threaded applications
+====================================
+
+A note about archive and file handles:  In most cases, archive and file handles should not be shared between threads.  Instead, open a new handle for each thread that will be reading from or writing to the archive or file.  However, if no threads have direct access to the handle and only one is able to use the archive or file at a time, sharing handles can be done.  Also, archive handles may be shared between threads when you are only reading files from the archive.
+
+-------------------------------
+Always nonthread-safe functions
+-------------------------------
+SFileOpenFileAsArchive
+SFileOpenArchive
+SFileCloseArchive
+SFileOpenFile
+SFileOpenFileEx
+SFileCloseFile
+SFileSetLocale (same value is used for all threads, so changing it for one changes it for all)
+SFileSetBasePath (should not be called at same time as itself or SFileGetBasePath, same value is used for all threads)
+SFileSetArchivePriority
+MpqOpenArchiveForUpdate
+MpqCloseUpdatedArchive
+MpqAddFileToArchiveEx
+MpqAddFileToArchive
+MpqAddWaveToArchive
+MpqAddFileFromBufferEx
+MpqAddFileFromBuffer
+MpqAddWaveFromBuffer
+MpqRenameFile
+MpqRenameAndSetFileLocale
+MpqDeleteFile
+MpqDeleteFileWithLocale
+MpqCompactArchive
+MpqSetFileLocale
+
+-----------------------------------
+Conditionally thread-safe functions
+-----------------------------------
+
+Note:  All file reading functions are thread-safe if separate handles are used for each thread and no functions are being used that would change the archive or files in any way.  If an archive is opened with write access, no other thread should be able to open another handle to it.
+
+Should not be called while opening or closing archives or files
+---------------------------------------------------------------
+SFileGetArchiveName
+SFileGetFileName
+SFileGetFileInfo
+
+Should not be called if the archive or file handle being used will be closed
+----------------------------------------------------------------------------
+SFileGetFileSize
+SFileGetFileArchive
+SFileSetFilePointer
+SFileReadFile
+SFileListFiles
+SFileFindMpqHeader
+
+Other conditions
+----------------
+SFileGetBasePath (should not be called at same time as SFileSetBasePath)
+
+----------------------------
+Always thread-safe functions
+----------------------------
+SFileDestroy
+StormDestroy
+SFMpqDestroy
+MpqInitialize
+MpqGetVersionString
+MpqGetVersion
+SFMpqGetVersionString
+SFMpqGetVersionString2
+SFMpqGetVersion
+AboutSFMpq
+SFMpqCompareVersion
+

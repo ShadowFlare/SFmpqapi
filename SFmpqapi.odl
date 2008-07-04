@@ -1,0 +1,288 @@
+// License information for this code is in license.txt
+
+[ uuid(CF183E40-8316-11d6-9E07-00A0C9199875), version(1.08),
+  helpstring("ShadowFlare MPQ API Library v1.08")]
+
+library SFMPQAPI
+{
+	#define WINAPI __stdcall
+	#define HANDLE long
+	#define MPQHANDLE HANDLE
+	#define DWORD long
+	#define LPDWORD DWORD *
+	#define LCID DWORD
+	#define PLONG LONG *
+	#define LPVOID LPSTR
+	#define BOOL boolean
+	typedef struct _OVERLAPPED {
+		DWORD  Internal;
+		DWORD  InternalHigh;
+		DWORD  Offset;
+		DWORD  OffsetHigh;
+		HANDLE hEvent;
+	} OVERLAPPED;
+	//#define LPOVERLAPPED OVERLAPPED *
+	#define LPOVERLAPPED long
+	typedef struct _SFMPQVERSION {
+		WORD Major;
+		WORD Minor;
+		WORD Revision;
+		WORD Subrevision;
+	} SFMPQVERSION;
+	typedef struct _FILELISTENTRY {
+		DWORD dwFileExists; // Nonzero if this entry is used
+		LCID lcLocale; // Locale ID of file
+		DWORD dwCompressedSize; // Compressed size of file
+		DWORD dwFullSize; // Uncompressed size of file
+		DWORD dwFlags; // Flags for file
+		char szFileName[260];
+	} FILELISTENTRY;
+
+	//[uuid(CF183E43-8316-11d6-9E07-00A0C9199875)] 
+	[helpstring("General error codes")]
+	typedef enum {
+		MPQ_ERROR_MPQ_INVALID =     0x85200065,
+		MPQ_ERROR_FILE_NOT_FOUND =  0x85200066,
+		MPQ_ERROR_DISK_FULL =       0x85200068,
+		MPQ_ERROR_HASH_TABLE_FULL = 0x85200069,
+		MPQ_ERROR_ALREADY_EXISTS =  0x8520006A,
+		MPQ_ERROR_BAD_OPEN_MODE =   0x8520006C,
+		MPQ_ERROR_COMPACT_ERROR =   0x85300001,
+	} Error_Constants;
+
+	[helpstring("MpqOpenArchiveForUpdate flags")]
+	typedef enum {
+		MOAU_CREATE_NEW =       0x00,
+		MOAU_CREATE_ALWAYS =    0x08,
+		MOAU_OPEN_EXISTING =    0x04,
+		MOAU_OPEN_ALWAYS =      0x20,
+		MOAU_READ_ONLY =        0x10,
+		MOAU_MAINTAIN_ATTRIBUTES=0x02,
+		MOAU_MAINTAIN_LISTFILE =0x01,
+	} MpqOpenArchiveForUpdate_Flags;
+
+	[helpstring("MpqAddFileToArchive flags")]
+	typedef enum {
+		MAFA_EXISTS =          0x80000000,
+		MAFA_UNKNOWN40000000 = 0x40000000,
+		MAFA_MODCRYPTKEY =     0x00020000,
+		MAFA_ENCRYPT =         0x00010000,
+		MAFA_COMPRESS =        0x00000200,
+		MAFA_COMPRESS2 =       0x00000100,
+		MAFA_REPLACE_EXISTING =0x00000001,
+	} MpqAddFileToArchive_Flags;
+
+	[helpstring("MpqAddFileToArchiveEx compression flags")]
+	typedef enum {
+		MAFA_COMPRESS_STANDARD = 0x08,
+		MAFA_COMPRESS_DEFLATE  = 0x02,
+		MAFA_COMPRESS_WAVE     = 0x81,
+		MAFA_COMPRESS_WAVE2    = 0x41,
+		MAFA_COMPRESS_WAVECOMP1 = 0x80,
+		MAFA_COMPRESS_WAVECOMP2 = 0x40,
+		MAFA_COMPRESS_WAVECOMP3 = 0x01,
+	} MpqAddFileToArchiveEx_Compression_Types;
+
+	[helpstring("Deflate compression level constants")]
+	typedef enum {
+		Z_NO_COMPRESSION = 0,
+		Z_BEST_SPEED = 1,
+		Z_BEST_COMPRESSION = 9,
+		Z_DEFAULT_COMPRESSION = (-1),
+	} Deflate_Compress_Level;
+
+	[helpstring("MpqAddWaveToArchive quality flags")]
+	typedef enum {
+		MAWA_QUALITY_HIGH =   1,
+		MAWA_QUALITY_MEDIUM = 0,
+		MAWA_QUALITY_LOW =    2,
+	} MpqAddWaveToArchive_Quality;
+
+	[helpstring("SFileGetFileInfo flags")]
+	typedef enum {
+		SFILE_INFO_BLOCK_SIZE =     0x01,
+		SFILE_INFO_HASH_TABLE_SIZE =0x02,
+		SFILE_INFO_NUM_FILES =      0x03,
+		SFILE_INFO_TYPE =           0x04,
+		SFILE_INFO_SIZE =           0x05,
+		SFILE_INFO_COMPRESSED_SIZE =0x06,
+		SFILE_INFO_FLAGS =          0x07,
+		SFILE_INFO_PARENT =         0x08,
+		SFILE_INFO_POSITION =       0x09,
+		SFILE_INFO_LOCALEID =       0x0A,
+		SFILE_INFO_PRIORITY =       0x0B,
+		SFILE_INFO_HASH_INDEX =     0x0C,
+	} SFileGetFileInfo_Flags;
+
+	[helpstring("SFileListFiles flags")]
+	typedef enum {
+		SFILE_LIST_MEMORY_LIST  =0x01,
+		SFILE_LIST_ONLY_KNOWN   =0x02,
+		SFILE_LIST_ONLY_UNKNOWN =0x04,
+	} SFileListFiles_Flags;
+
+	[helpstring("Handle type constants")]
+	typedef enum {
+		SFILE_TYPE_MPQ = 0x01,
+		SFILE_TYPE_FILE =0x02,
+	} Handle_Type_Constants;
+
+	[helpstring("SFileOpenArchive flags")]
+	typedef enum {
+		SFILE_OPEN_HARD_DISK_FILE =0x0000,
+		SFILE_OPEN_CD_ROM_FILE =   0x0001,
+		SFILE_OPEN_ALLOW_WRITE =   0x8000,
+	} SFileOpenArchive_Flags;
+
+	[helpstring("SFileOpenFileEx flags")]
+	typedef enum {
+		SFILE_SEARCH_CURRENT_ONLY =0x00,
+		SFILE_SEARCH_ALL_OPEN =    0x01
+	} SFileOpenFileEx_Flags;
+
+	[helpstring("Other misc. flags and constants")]
+	typedef enum {
+		INVALID_HANDLE_VALUE = 0xFFFFFFFF,
+	} Other;
+
+
+	[helpstring("SFileSetFilePointer move methods")]
+	typedef enum {
+		FILE_BEGIN = 0,
+		FILE_CURRENT = 1,
+		FILE_END = 2
+	} SFileSetFilePointer_Move_Methods;
+
+	[helpstring("Windows defined error codes")]
+	typedef enum {
+		ERROR_SUCCESS           = 0,
+		NO_ERROR                = 0,
+		ERROR_FILE_NOT_FOUND    = 2,
+		ERROR_OUTOFMEMORY       = 14,
+		ERROR_INVALID_PARAMETER = 87,
+		ERROR_DISK_FULL         = 112,
+		ERROR_ALREADY_EXISTS    = 183,
+		ERROR_FILE_INVALID      = 1006,
+		ERROR_UNKNOWN_PROPERTY  = 1608
+	} WinErrors;
+
+	[dllname("sfmpq.dll")]
+
+	[helpstring("Version and other misc. functions")]
+	module SFMpq
+	{
+		[entry("MpqInitialize"),helpstring("MpqInitialize does nothing; it is only provided for compatibility with MPQ archivers that use lmpqapi.")]
+			BOOL   WINAPI MpqInitialize();
+		[entry("MpqGetVersionString"),helpstring("")]
+			LPCSTR WINAPI MpqGetVersionString();
+		[entry("MpqGetVersion"),helpstring("")]
+			float  WINAPI MpqGetVersion();
+		[entry("SFMpqDestroy"),helpstring("This no longer needs to be called; it is only provided for compatibility with older versions")]
+			void   WINAPI SFMpqDestroy();
+		[entry("SFMpqGetVersionString"),helpstring("")]
+			LPCSTR WINAPI SFMpqGetVersionString();
+		[entry("SFMpqGetVersionString2"),helpstring("SFMpqGetVersionString2's return value is the required length of the buffer plus the terminating null, so use SFMpqGetVersionString2(0, 0) to get the length.")]
+			DWORD  WINAPI SFMpqGetVersionString2(LPCSTR lpBuffer, DWORD dwBufferLength);
+		[entry("SFMpqGetVersion"),helpstring("")]
+			SFMPQVERSION WINAPI SFMpqGetVersion();
+		[entry("SFMpqCompareVersion"),helpstring("Returns 0 if the dll version is equal to the version your program was compiled with, 1 if the dll is newer, -1 if the dll is older.")]
+			long SFMpqCompareVersion();
+	};
+
+	[helpstring("Storm SFile emulated functions")]
+	module SFile
+	{
+		[entry("SFileOpenArchive"),helpstring("")]
+			BOOL      WINAPI SFileOpenArchive(LPCSTR lpFileName, DWORD dwPriority, DWORD dwFlags, MPQHANDLE *hMPQ);
+		[entry("SFileCloseArchive"),helpstring("")]
+			BOOL      WINAPI SFileCloseArchive(MPQHANDLE hMPQ);
+		[entry("SFileOpenFileAsArchive"),helpstring("")]
+			BOOL      WINAPI SFileOpenFileAsArchive(MPQHANDLE hSourceMPQ, LPCSTR lpFileName, DWORD dwPriority, DWORD dwFlags, MPQHANDLE *hMPQ);
+		[entry("SFileGetArchiveName"),helpstring("")]
+			BOOL      WINAPI SFileGetArchiveName(MPQHANDLE hMPQ, LPCSTR lpBuffer, DWORD dwBufferLength);
+		[entry("SFileOpenFile"),helpstring("")]
+			BOOL      WINAPI SFileOpenFile(LPCSTR lpFileName, MPQHANDLE *hFile);
+		[entry("SFileOpenFileEx"),helpstring("")]
+			BOOL      WINAPI SFileOpenFileEx(MPQHANDLE hMPQ, LPCSTR lpFileName, DWORD dwSearchScope, MPQHANDLE *hFile);
+		[entry("SFileCloseFile"),helpstring("")]
+			BOOL      WINAPI SFileCloseFile(MPQHANDLE hFile);
+		[entry("SFileGetFileSize"),helpstring("")]
+			DWORD     WINAPI SFileGetFileSize(MPQHANDLE hFile, LPDWORD lpFileSizeHigh);
+		[entry("SFileGetFileArchive"),helpstring("")]
+			BOOL      WINAPI SFileGetFileArchive(MPQHANDLE hFile, MPQHANDLE *hMPQ);
+		[entry("SFileGetFileName"),helpstring("")]
+			BOOL      WINAPI SFileGetFileName(MPQHANDLE hFile, LPCSTR lpBuffer, DWORD dwBufferLength);
+		[entry("SFileSetFilePointer"),helpstring("")]
+			DWORD     WINAPI SFileSetFilePointer(MPQHANDLE hFile, long lDistanceToMove, PLONG lplDistanceToMoveHigh, DWORD dwMoveMethod);
+		[entry("SFileReadFile"),helpstring("")]
+			BOOL      WINAPI SFileReadFile(MPQHANDLE hFile,LPVOID lpBuffer,DWORD nNumberOfBytesToRead,LPDWORD lpNumberOfBytesRead,LPOVERLAPPED lpOverlapped);
+		[entry("SFileReadFile"),helpstring("")]
+			BOOL      WINAPI SFileReadFileB(MPQHANDLE hFile,byte *lpBuffer,DWORD nNumberOfBytesToRead,LPDWORD lpNumberOfBytesRead,LPOVERLAPPED lpOverlapped);
+		[entry("SFileSetLocale"),helpstring("")]
+			LCID      WINAPI SFileSetLocale(LCID nNewLocale);
+		[entry("SFileGetBasePath"),helpstring("")]
+			BOOL      WINAPI SFileGetBasePath(LPCSTR lpBuffer, DWORD dwBufferLength);
+		[entry("SFileSetBasePath"),helpstring("")]
+			BOOL      WINAPI SFileSetBasePath(LPCSTR lpNewBasePath);
+		[entry("SFileGetFileInfo"),helpstring("")]
+			DWORD     WINAPI SFileGetFileInfo(MPQHANDLE hFile, DWORD dwInfoType);
+		[entry("SFileSetArchivePriority"),helpstring("")]
+			BOOL      WINAPI SFileSetArchivePriority(MPQHANDLE hMPQ, DWORD dwPriority);
+		[entry("SFileFindMpqHeader"),helpstring("")]
+			DWORD     WINAPI SFileFindMpqHeader(HANDLE hFile);
+		[entry("SFileListFiles"),helpstring("")]
+			BOOL      WINAPI SFileListFiles(MPQHANDLE hMPQ, LPCSTR lpFileLists, FILELISTENTRY *lpListBuffer, DWORD dwFlags);
+		[entry("SFileDestroy"),helpstring("")]
+			BOOL      WINAPI SFileDestroy();
+		[entry("StormDestroy"),helpstring("")]
+			void      WINAPI StormDestroy();
+	};
+
+	[helpstring("MPQ archive creation and editing functions")]
+	module MPQ
+	{
+		[entry("MpqOpenArchiveForUpdate"),helpstring("")]
+			MPQHANDLE WINAPI MpqOpenArchiveForUpdate(LPCSTR lpFileName, DWORD dwFlags, DWORD dwMaximumFilesInArchive);
+		[entry("MpqCloseUpdatedArchive"),helpstring("")]
+			DWORD     WINAPI MpqCloseUpdatedArchive(MPQHANDLE hMPQ, DWORD dwUnknown2);
+		[entry("MpqAddFileToArchive"),helpstring("")]
+			BOOL      WINAPI MpqAddFileToArchive(MPQHANDLE hMPQ, LPCSTR lpSourceFileName, LPCSTR lpDestFileName, DWORD dwFlags);
+		[entry("MpqAddWaveToArchive"),helpstring("")]
+			BOOL      WINAPI MpqAddWaveToArchive(MPQHANDLE hMPQ, LPCSTR lpSourceFileName, LPCSTR lpDestFileName, DWORD dwFlags, DWORD dwQuality);
+		[entry("MpqRenameFile"),helpstring("")]
+			BOOL      WINAPI MpqRenameFile(MPQHANDLE hMPQ, LPCSTR lpcOldFileName, LPCSTR lpcNewFileName);
+		[entry("MpqDeleteFile"),helpstring("")]
+			BOOL      WINAPI MpqDeleteFile(MPQHANDLE hMPQ, LPCSTR lpFileName);
+		[entry("MpqCompactArchive"),helpstring("")]
+			BOOL      WINAPI MpqCompactArchive(MPQHANDLE hMPQ);
+		[entry("MpqAddFileToArchiveEx"),helpstring("")]
+			BOOL      WINAPI MpqAddFileToArchiveEx(MPQHANDLE hMPQ, LPCSTR lpSourceFileName, LPCSTR lpDestFileName, DWORD dwFlags, DWORD dwCompressionType, DWORD dwCompressLevel);
+		[entry("MpqAddFileFromBufferEx"),helpstring("")]
+			BOOL      WINAPI MpqAddFileFromBufferEx(MPQHANDLE hMPQ, LPVOID lpBuffer, DWORD dwLength, LPCSTR lpFileName, DWORD dwFlags, DWORD dwCompressionType, DWORD dwCompressLevel);
+		[entry("MpqAddFileFromBufferEx"),helpstring("")]
+			BOOL      WINAPI MpqAddFileFromBufferExB(MPQHANDLE hMPQ, byte *lpBuffer, DWORD dwLength, LPCSTR lpFileName, DWORD dwFlags, DWORD dwCompressionType, DWORD dwCompressLevel);
+		[entry("MpqAddFileFromBuffer"),helpstring("")]
+			BOOL      WINAPI MpqAddFileFromBuffer(MPQHANDLE hMPQ, LPVOID lpBuffer, DWORD dwLength, LPCSTR lpFileName, DWORD dwFlags);
+		[entry("MpqAddFileFromBuffer"),helpstring("")]
+			BOOL      WINAPI MpqAddFileFromBufferB(MPQHANDLE hMPQ, byte *lpBuffer, DWORD dwLength, LPCSTR lpFileName, DWORD dwFlags);
+		[entry("MpqAddWaveFromBuffer"),helpstring("")]
+			BOOL      WINAPI MpqAddWaveFromBuffer(MPQHANDLE hMPQ, LPVOID lpBuffer, DWORD dwLength, LPCSTR lpFileName, DWORD dwFlags, DWORD dwQuality);
+		[entry("MpqAddWaveFromBuffer"),helpstring("")]
+			BOOL      WINAPI MpqAddWaveFromBufferB(MPQHANDLE hMPQ, byte *lpBuffer, DWORD dwLength, LPCSTR lpFileName, DWORD dwFlags, DWORD dwQuality);
+		[entry("MpqRenameAndSetFileLocale"),helpstring("")]
+			BOOL      WINAPI MpqRenameAndSetFileLocale(MPQHANDLE hMPQ, LPCSTR lpcOldFileName, LPCSTR lpcNewFileName, LCID nOldLocale, LCID nNewLocale);
+		[entry("MpqDeleteFileWithLocale"),helpstring("")]
+			BOOL      WINAPI MpqDeleteFileWithLocale(MPQHANDLE hMPQ, LPCSTR lpFileName, LCID nLocale);
+		[entry("MpqSetFileLocale"),helpstring("")]
+			BOOL      WINAPI MpqSetFileLocale(MPQHANDLE hMPQ, LPCSTR lpFileName, LCID nOldLocale, LCID nNewLocale);
+	};
+
+	[dllname("kernel32.dll")]
+
+	module LastError
+	{
+		[entry("GetLastError"),helpstring("")]
+			DWORD WINAPI GetLastError();
+	};
+};
+

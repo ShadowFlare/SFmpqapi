@@ -1,0 +1,154 @@
+<html>
+<title>About ShadowFlare MPQ API Library</title>
+<pre>  ShadowFlare MPQ API Library v1.08 (c) ShadowFlare Software 2002-2008
+
+  This library emulates the interface of Lmpqapi and Storm MPQ
+  functions, so it may be used as a replacement for them in
+  MPQ extractors/archivers without even needing to recompile
+  the program that uses Lmpqapi or Storm.  It has a few features
+  not included in Lmpqapi and Storm, such as extra flags for some
+  functions, setting the locale ID of existing files, and adding
+  files without having to write them somewhere else first.  Also,
+  MPQ handles used by functions prefixed with "SFile" and "Mpq"
+  can be used interchangably; all functions use the same type
+  of MPQ handles.  You cannot, however, use handles from this
+  library with storm or lmpqapi or vice-versa.  Doing so will
+  most likely result in a crash.
+
+  This library does not require Storm to be able to decompress
+  or compress files.
+
+  Revision History:
+  (Release date) 1.08 (<a href="mailto:blakflare@hotmail.com">ShadowFlare</a>)
+  - Fixed a buffer overflow that would occur when reading files
+    if neither using a buffer that is large enough to contain the
+    entire file nor has a size that is a multiple of 4096
+  - Added SFileOpenFileAsArchive which opens an archive that is
+    contained within an already open archive
+  - Added MpqRenameAndSetFileLocale and MpqDeleteFileWithLocale.
+    These have extra parameters that allow you to use them with
+    files having language codes other than what was last set
+    using SFileSetLocale
+  - Fixed a bug that caused (listfile) to get cleared if adding
+    files with a locale ID other than 0
+  - Added MpqOpenArchiveForUpdateEx which allows creating
+    archives with different block sizes
+  - SFileListFiles can list the contents of bncache.dat without
+    needing an external list
+
+  06/12/2002 1.07 (<a href="mailto:blakflare@hotmail.com">ShadowFlare</a>)
+  - No longer requires Storm.dll to compress or decompress
+    Warcraft III files
+  - Added SFileListFiles for getting names and information
+    about all of the files in an archive
+  - Fixed a bug with renaming and deleting files
+  - Fixed a bug with adding wave compressed files with
+    low compression setting
+  - Added a check in MpqOpenArchiveForUpdate for proper
+    dwMaximumFilesInArchive values (should be a number that
+    is a power of 2).  If it is not a proper value, it will
+    be rounded up to the next higher power of 2
+
+  05/09/2002 1.06 (<a href="mailto:blakflare@hotmail.com">ShadowFlare</a>)
+  - Compresses files without Storm.dll!
+  - If Warcraft III is installed, this library will be able to
+    find Storm.dll on its own. (Storm.dll is needed to
+    decompress Warcraft III files)
+  - Fixed a bug where an embedded archive and the file that
+    contains it would be corrupted if the archive was modified
+  - Able to open all .w3m maps now
+
+  29/06/2002 1.05 (<a href="mailto:blakflare@hotmail.com">ShadowFlare</a>)
+  - Supports decompressing files from Warcraft III MPQ archives
+    if using Storm.dll from Warcraft III
+  - Added MpqAddFileToArchiveEx and MpqAddFileFromBufferEx for
+    using extra compression types
+
+  29/05/2002 1.04 (<a href="mailto:blakflare@hotmail.com">ShadowFlare</a>)
+  - Files can be compressed now!
+  - Fixed a bug in SFileReadFile when reading data not aligned
+    to the block size
+  - Optimized some of SFileReadFile's code.  It can read files
+    faster now
+  - SFile functions may now be used to access files not in mpq
+    archives as you can with the real storm functions
+  - MpqCompactArchive will no longer corrupt files with the
+    MODCRYPTKEY flag as long as the file is either compressed,
+    listed in "(listfile)", is "(listfile)", or is located in
+    the same place in the compacted archive; so it is safe
+    enough to use it on almost any archive
+  - Added MpqAddWaveFromBuffer
+  - Better handling of archives with no files
+  - Fixed compression with COMPRESS2 flag
+
+  15/05/2002 1.03 (<a href="mailto:blakflare@hotmail.com">ShadowFlare</a>)
+  - Supports adding files with the compression attribute (does
+    not actually compress files).  Now archives created with
+    this dll can have files added to them through lmpqapi
+    without causing staredit to crash
+  - SFileGetBasePath and SFileSetBasePath work more like their
+    Storm equivalents now
+  - Implemented MpqCompactArchive, but it is not finished yet.
+    In its current state, I would recommend against using it
+    on archives that contain files with the MODCRYPTKEY flag,
+    since it will corrupt any files with that flag
+  - Added SFMpqGetVersionString2 which may be used in Visual
+    Basic to get the version string
+
+  07/05/2002 1.02 (<a href="mailto:blakflare@hotmail.com">ShadowFlare</a>)
+  - SFileReadFile no longer passes the lpOverlapped parameter it
+    receives to ReadFile.  This is what was causing the function
+    to fail when used in Visual Basic
+  - Added support for more Storm MPQ functions
+  - GetLastError may now be used to get information about why a
+    function failed
+
+  01/05/2002 1.01 (<a href="mailto:blakflare@hotmail.com">ShadowFlare</a>)
+  - Added ordinals for Storm MPQ functions
+  - Fixed MPQ searching functionality of SFileOpenFileEx
+  - Added a check for whether a valid handle is given when
+    SFileCloseArchive is called
+  - Fixed functionality of SFileSetArchivePriority when multiple
+    files are open
+  - File renaming works for all filenames now
+  - SFileReadFile no longer reallocates the buffer for each block
+    that is decompressed.  This should make SFileReadFile at least
+    a little faster
+
+  30/04/2002 1.00 (<a href="mailto:blakflare@hotmail.com">ShadowFlare</a>)
+  - First version.
+  - Compression not yet supported
+  - Does not use SetLastError yet, so GetLastError will not return any
+    errors that have to do with this library
+  - MpqCompactArchive not implemented
+
+  Any comments or suggestions are accepted at <a href="mailto:blakflare@hotmail.com">blakflare@hotmail.com</a> (ShadowFlare)
+  Download the newest version from ShadowFlare's Realm at <a href="http://sfsrealm.hopto.org/">http://sfsrealm.hopto.org/</a>
+
+  License information:
+
+  Copyright (c) 2002-2008, ShadowFlare &lt;<a href="mailto:blakflare@hotmail.com">blakflare@hotmail.com</a>&gt;
+  All rights reserved.
+
+  Redistribution and use in source and binary forms, with or without
+  modification, are permitted provided that the following conditions
+  are met:
+
+  1. Redistributions of source code must retain the above copyright
+     notice, this list of conditions and the following disclaimer.
+  2. Redistributions in binary form must reproduce the above copyright
+     notice, this list of conditions and the following disclaimer in the
+     documentation and/or other materials provided with the distribution.
+
+  THIS SOFTWARE IS PROVIDED BY THE AUTHOR AND CONTRIBUTORS "AS IS" AND
+  ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE
+  IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE
+  ARE DISCLAIMED. IN NO EVENT SHALL THE AUTHOR OR CONTRIBUTORS BE LIABLE
+  FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL
+  DAMAGES (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS
+  OR SERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION)
+  HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT
+  LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY
+  OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF
+  SUCH DAMAGE.</pre>
+</html>
