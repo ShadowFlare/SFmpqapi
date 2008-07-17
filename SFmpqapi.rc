@@ -84,11 +84,11 @@ BEGIN
 #endif
             VALUE "FileVersion", "1.08\0"
             VALUE "InternalName", "SFmpq\0"
-            VALUE "LegalCopyright", "Copyright © ShadowFlare Software 2002-2003\0"
+            VALUE "LegalCopyright", "Copyright © ShadowFlare Software 2002-2008\0"
             VALUE "OriginalFilename", "SFmpq.dll\0"
             VALUE "ProductName", "MPQ API Library\0"
             VALUE "ProductVersion", "1, 0, 8, 1\0"
-            VALUE "Web Address", "http://shadowflare.gameproc.com/\0"
+            VALUE "Web Address", "http://sfsrealm.hopto.org/\0"
         END
     END
     BLOCK "VarFileInfo"
