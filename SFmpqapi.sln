@@ -1,0 +1,31 @@
+﻿
+Microsoft Visual Studio Solution File, Format Version 10.00
+# Visual Studio 2008
+Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "SFmpqapi", "SFmpqapi.vcproj", "{D677FDD7-F14A-403F-8D59-C75D1825260C}"
+EndProject
+Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "SFmpqlib", "SFmpqlib.vcproj", "{2AB3EE05-94F1-433F-A9CF-F7E01220445D}"
+EndProject
+Global
+	GlobalSection(SolutionConfigurationPlatforms) = preSolution
+		Beta release|Win32 = Beta release|Win32
+		Debug|Win32 = Debug|Win32
+		Release|Win32 = Release|Win32
+	EndGlobalSection
+	GlobalSection(ProjectConfigurationPlatforms) = postSolution
+		{D677FDD7-F14A-403F-8D59-C75D1825260C}.Beta release|Win32.ActiveCfg = Beta release|Win32
+		{D677FDD7-F14A-403F-8D59-C75D1825260C}.Beta release|Win32.Build.0 = Beta release|Win32
+		{D677FDD7-F14A-403F-8D59-C75D1825260C}.Debug|Win32.ActiveCfg = Debug|Win32
+		{D677FDD7-F14A-403F-8D59-C75D1825260C}.Debug|Win32.Build.0 = Debug|Win32
+		{D677FDD7-F14A-403F-8D59-C75D1825260C}.Release|Win32.ActiveCfg = Release|Win32
+		{D677FDD7-F14A-403F-8D59-C75D1825260C}.Release|Win32.Build.0 = Release|Win32
+		{2AB3EE05-94F1-433F-A9CF-F7E01220445D}.Beta release|Win32.ActiveCfg = Release|Win32
+		{2AB3EE05-94F1-433F-A9CF-F7E01220445D}.Beta release|Win32.Build.0 = Release|Win32
+		{2AB3EE05-94F1-433F-A9CF-F7E01220445D}.Debug|Win32.ActiveCfg = Debug|Win32
+		{2AB3EE05-94F1-433F-A9CF-F7E01220445D}.Debug|Win32.Build.0 = Debug|Win32
+		{2AB3EE05-94F1-433F-A9CF-F7E01220445D}.Release|Win32.ActiveCfg = Release|Win32
+		{2AB3EE05-94F1-433F-A9CF-F7E01220445D}.Release|Win32.Build.0 = Release|Win32
+	EndGlobalSection
+	GlobalSection(SolutionProperties) = preSolution
+		HideSolutionNode = FALSE
+	EndGlobalSection
+EndGlobal
