@@ -1520,7 +1520,7 @@ BOOL SFMPQAPI WINAPI SFileListFiles(MPQHANDLE hMPQ, LPCSTR lpFileLists, FILELIST
 		for (i=0;i<mpqOpenArc->MpqHeader.dwHashTableSize;i++) {
 			lpListBuffer[i].dwFileExists = 0;
 			lpListBuffer[i].szFileName[0] = 0;
-			if ((mpqOpenArc->lpHashTable[i].dwBlockTableIndex&0xFFFFFFFE)!=0xFFFFFFFE) {
+			if ((mpqOpenArc->lpHashTable[i].dwBlockTableIndex&0xFFFFFFFE)!=0xFFFFFFFE && mpqOpenArc->lpHashTable[i].dwBlockTableIndex < mpqOpenArc->MpqHeader.dwBlockTableSize) {
 				lpListBuffer[i].lcLocale = mpqOpenArc->lpHashTable[i].lcLocale;
 				DWORD dwBlockIndex = mpqOpenArc->lpHashTable[i].dwBlockTableIndex;
 				lpListBuffer[i].dwCompressedSize = mpqOpenArc->lpBlockTable[dwBlockIndex].dwCompressedSize;
@@ -1684,7 +1684,7 @@ BOOL SFMPQAPI WINAPI SFileListFiles(MPQHANDLE hMPQ, LPCSTR lpFileLists, FILELIST
 	for (i=0;i<mpqOpenArc->MpqHeader.dwHashTableSize;i++) {
 		lpListBuffer[i].dwFileExists = 0;
 		lpListBuffer[i].szFileName[0] = 0;
-		if ((mpqOpenArc->lpHashTable[i].dwBlockTableIndex&0xFFFFFFFE)!=0xFFFFFFFE) {
+		if ((mpqOpenArc->lpHashTable[i].dwBlockTableIndex&0xFFFFFFFE)!=0xFFFFFFFE && mpqOpenArc->lpHashTable[i].dwBlockTableIndex < mpqOpenArc->MpqHeader.dwBlockTableSize) {
 			lpListBuffer[i].lcLocale = mpqOpenArc->lpHashTable[i].lcLocale;
 			DWORD dwBlockIndex = mpqOpenArc->lpHashTable[i].dwBlockTableIndex;
 			lpListBuffer[i].dwCompressedSize = mpqOpenArc->lpBlockTable[dwBlockIndex].dwCompressedSize;
