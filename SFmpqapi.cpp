@@ -2036,7 +2036,7 @@ BOOL SFMPQAPI WINAPI MpqAddFileToArchiveEx(MPQHANDLE hMPQ, LPCSTR lpSourceFileNa
 	mpqOpenArc->lpBlockTable[BlockIndex].dwFlags = dwFlags|MAFA_EXISTS;
 	DWORD dwFileOffset = mpqOpenArc->lpBlockTable[BlockIndex].dwFileOffset;
 	SetFilePointer(mpqOpenArc->hFile,mpqOpenArc->dwMPQStart,0,FILE_BEGIN);
-	WriteFile(mpqOpenArc->hFile,&mpqOpenArc->MpqHeader,mpqOpenArc->MpqHeader.dwHeaderSize,&tsz,0);
+	WriteFile(mpqOpenArc->hFile,&mpqOpenArc->MpqHeader,sizeof(MPQHEADER),&tsz,0);
 	if (dwFlags & MAFA_ENCRYPT) {
 		DWORD dwCryptKey;
 		if (dwFlags&MAFA_ENCRYPT) dwCryptKey = HashString(lpDestFileName,HASH_KEY);
@@ -2381,7 +2381,7 @@ BOOL SFMPQAPI WINAPI MpqAddFileFromBufferEx(MPQHANDLE hMPQ, LPVOID lpBuffer, DWO
 	mpqOpenArc->lpBlockTable[BlockIndex].dwFlags = dwFlags|MAFA_EXISTS;
 	DWORD dwFileOffset = mpqOpenArc->lpBlockTable[BlockIndex].dwFileOffset;
 	SetFilePointer(mpqOpenArc->hFile,mpqOpenArc->dwMPQStart,0,FILE_BEGIN);
-	WriteFile(mpqOpenArc->hFile,&mpqOpenArc->MpqHeader,mpqOpenArc->MpqHeader.dwHeaderSize,&tsz,0);
+	WriteFile(mpqOpenArc->hFile,&mpqOpenArc->MpqHeader,sizeof(MPQHEADER),&tsz,0);
 	if (dwFlags & MAFA_ENCRYPT) {
 		DWORD dwCryptKey;
 		if (dwFlags&MAFA_ENCRYPT) dwCryptKey = HashString(lpFileName,HASH_KEY);
@@ -2675,7 +2675,7 @@ BOOL SFMPQAPI WINAPI MpqCompactArchive(MPQHANDLE hMPQ)
 		}
 		if (i==10000) return FALSE;
 	}
-	DWORD dwLastOffset = mpqOpenArc->MpqHeader.dwHeaderSize,tsz;
+	DWORD dwLastOffset = sizeof(MPQHEADER),tsz;
 	char *buffer = (char *)SFAlloc(65536);
 	if (buffer==0) {
 		CloseHandle(hFile);
@@ -3020,8 +3020,9 @@ BOOL SFMPQAPI WINAPI MpqCompactArchive(MPQHANDLE hMPQ)
 	SetFilePointer(mpqOpenArc->hFile,mpqOpenArc->dwMPQStart+dwLastOffset,0,FILE_BEGIN);
 	SetEndOfFile(mpqOpenArc->hFile);
 	SetFilePointer(mpqOpenArc->hFile,mpqOpenArc->dwMPQStart,0,FILE_BEGIN);
+	mpqOpenArc->MpqHeader.dwHeaderSize = sizeof(MPQHEADER);
 	WriteFile(mpqOpenArc->hFile,&mpqOpenArc->MpqHeader,sizeof(MPQHEADER),&tsz,0);
-	dwLastOffset = mpqOpenArc->MpqHeader.dwHeaderSize;
+	dwLastOffset = sizeof(MPQHEADER);
 	ReadSize = 65536;
 	for (i=dwLastOffset;i<mpqOpenArc->MpqHeader.dwHashTableOffset;i+=65536) {
 		SetFilePointer(mpqOpenArc->hFile,mpqOpenArc->dwMPQStart+i,0,FILE_BEGIN);

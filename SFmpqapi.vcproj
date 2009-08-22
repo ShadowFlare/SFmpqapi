@@ -4,6 +4,7 @@
 	Version="9.00"
 	Name="SFmpqapi"
 	ProjectGUID="{D677FDD7-F14A-403F-8D59-C75D1825260C}"
+	RootNamespace="SFmpqapi"
 	TargetFrameworkVersion="0"
 	>
 	<Platforms>
@@ -23,6 +24,7 @@
 			UseOfMFC="0"
 			ATLMinimizesCRunTimeLibraryUsage="false"
 			CharacterSet="2"
+			WholeProgramOptimization="1"
 			>
 			<Tool
 				Name="VCPreBuildEventTool"
@@ -48,11 +50,12 @@
 			<Tool
 				Name="VCCLCompilerTool"
 				Optimization="2"
-				InlineFunctionExpansion="1"
+				InlineFunctionExpansion="0"
+				FavorSizeOrSpeed="1"
 				PreprocessorDefinitions="WIN32;NDEBUG;_WINDOWS;_USRDLL;SFMPQAPI_EXPORTS;ZLIB_DLL;BETA"
 				StringPooling="true"
 				RuntimeLibrary="0"
-				EnableFunctionLevelLinking="true"
+				EnableFunctionLevelLinking="false"
 				PrecompiledHeaderFile=".\Release/SFmpqapi.pch"
 				AssemblerListingLocation=".\Release/"
 				ObjectFile=".\Release/"
@@ -78,7 +81,7 @@
 				SuppressStartupBanner="true"
 				ModuleDefinitionFile=".\SFmpqapi.def"
 				ProgramDatabaseFile=".\Release/SFmpq.pdb"
-				RandomizedBaseAddress="1"
+				RandomizedBaseAddress="0"
 				DataExecutionPrevention="0"
 				ImportLibrary=".\Release/SFmpq.lib"
 				TargetMachine="1"
@@ -116,6 +119,7 @@
 			UseOfMFC="0"
 			ATLMinimizesCRunTimeLibraryUsage="false"
 			CharacterSet="2"
+			WholeProgramOptimization="1"
 			>
 			<Tool
 				Name="VCPreBuildEventTool"
@@ -141,11 +145,12 @@
 			<Tool
 				Name="VCCLCompilerTool"
 				Optimization="2"
-				InlineFunctionExpansion="1"
+				InlineFunctionExpansion="0"
+				FavorSizeOrSpeed="1"
 				PreprocessorDefinitions="WIN32;NDEBUG;_WINDOWS;_USRDLL;SFMPQAPI_EXPORTS;ZLIB_DLL"
 				StringPooling="true"
 				RuntimeLibrary="0"
-				EnableFunctionLevelLinking="true"
+				EnableFunctionLevelLinking="false"
 				PrecompiledHeaderFile=".\Release/SFmpqapi.pch"
 				AssemblerListingLocation=".\Release/"
 				ObjectFile=".\Release/"
@@ -171,7 +176,7 @@
 				SuppressStartupBanner="true"
 				ModuleDefinitionFile=".\SFmpqapi.def"
 				ProgramDatabaseFile=".\Release/SFmpq.pdb"
-				RandomizedBaseAddress="1"
+				RandomizedBaseAddress="0"
 				DataExecutionPrevention="0"
 				ImportLibrary=".\Release/SFmpq.lib"
 				TargetMachine="1"
