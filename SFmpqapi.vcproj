@@ -243,6 +243,7 @@
 				MinimalRebuild="true"
 				BasicRuntimeChecks="3"
 				RuntimeLibrary="1"
+				EnableFunctionLevelLinking="true"
 				PrecompiledHeaderFile=".\Debug/SFmpqapi.pch"
 				AssemblerListingLocation=".\Debug/"
 				ObjectFile=".\Debug/"
@@ -612,10 +613,6 @@
 			</File>
 			<File
 				RelativePath="..\SComp\SComp.h"
-				>
-			</File>
-			<File
-				RelativePath="SComp.h"
 				>
 			</File>
 			<File

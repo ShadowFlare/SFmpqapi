@@ -12,7 +12,7 @@
 #include <shellapi.h>
 #endif
 
-#include "SComp.h"
+#include "../SComp/SComp.h"
 
 #include "SFmpqapi.h"
 
@@ -3227,12 +3227,19 @@ MPQHANDLE GetFreeHashTableEntry(MPQHANDLE hMPQ, LPCSTR lpFileName, LCID FileLoca
 	DWORD dwTablePos = HashString(lpFileName,HASH_POSITION) % mpqOpenArc->MpqHeader.dwHashTableSize;
 	DWORD dwNameHashA = HashString(lpFileName,HASH_NAME_A);
 	DWORD dwNameHashB = HashString(lpFileName,HASH_NAME_B);
-	DWORD i=dwTablePos;
+	DWORD i=dwTablePos, nFirstFree = 0xFFFFFFFF;
 	do
 	{
-		if ((mpqOpenArc->lpHashTable[i].dwBlockTableIndex&0xFFFFFFFE)==0xFFFFFFFE)
+		if ((mpqOpenArc->lpHashTable[i].dwBlockTableIndex&0xFFFFFFFE)==0xFFFFFFFE && nFirstFree == 0xFFFFFFFF)
 		{
-			return (MPQHANDLE)&mpqOpenArc->lpHashTable[i];
+			if (mpqOpenArc->lpHashTable[i].dwBlockTableIndex == 0xFFFFFFFF)
+			{
+				if (nFirstFree == 0xFFFFFFFF)
+					return (MPQHANDLE)&mpqOpenArc->lpHashTable[i];
+				else
+					return (MPQHANDLE)&mpqOpenArc->lpHashTable[nFirstFree];
+			}
+			else nFirstFree = i;
 		}
 		else if (mpqOpenArc->lpHashTable[i].dwNameHashA==dwNameHashA && mpqOpenArc->lpHashTable[i].dwNameHashB==dwNameHashB && mpqOpenArc->lpHashTable[i].lcLocale==FileLocale)
 		{
