@@ -106,8 +106,8 @@ MPQFILE * FirstLastFile[2] = {0,0};
 
 char StormBasePath[MAX_PATH+1];
 
-#define UNSUPPORTED_COMPRESSION   (0xFF ^ (0x40 | 0x80 | 0x01 | 0x02 | 0x08))
-#define UNSUPPORTED_DECOMPRESSION (0xFF ^ (0x40 | 0x80 | 0x01 | 0x02 | 0x08))
+#define UNSUPPORTED_COMPRESSION   (0xFF ^ (0x40 | 0x80 | 0x01 | 0x02 | 0x08 | 0x10))
+#define UNSUPPORTED_DECOMPRESSION (0xFF ^ (0x40 | 0x80 | 0x01 | 0x02 | 0x08 | 0x10))
 
 typedef BOOL (WINAPI* funcSCompCompress)(LPVOID lpvDestinationMem, LPDWORD lpdwCompressedSize, LPVOID lpvSourceMem, DWORD dwDecompressedSize, DWORD dwCompressionType, DWORD dwCompressionSubType, DWORD dwWAVQuality);
 typedef BOOL (WINAPI* funcSCompDecompress)(LPVOID lpvDestinationMem, LPDWORD lpdwDecompressedSize, LPVOID lpvSourceMem, DWORD dwCompressedSize);

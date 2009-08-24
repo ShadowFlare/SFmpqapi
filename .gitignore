@@ -1,5 +1,7 @@
 *Debug/
 *Release/
 *.ncb
+*.opt
+*.plg
 *.suo
 *.user

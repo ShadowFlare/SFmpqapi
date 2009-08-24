@@ -44,7 +44,8 @@ RSC=rc.exe
 # PROP Ignore_Export_Lib 0
 # PROP Target_Dir ""
 # ADD BASE CPP /nologo /MT /W3 /GX /O2 /D "WIN32" /D "NDEBUG" /D "_WINDOWS" /D "_MBCS" /D "_USRDLL" /D "SFMPQAPI_EXPORTS" /YX /FD /c
-# ADD CPP /nologo /MT /W3 /GX /O2 /D "WIN32" /D "NDEBUG" /D "_WINDOWS" /D "_MBCS" /D "_USRDLL" /D "SFMPQAPI_EXPORTS" /D "ZLIB_DLL" /YX /FD /c
+# ADD CPP /nologo /MT /W3 /GX /O2 /Ob2 /D "WIN32" /D "NDEBUG" /D "_WINDOWS" /D "_MBCS" /D "_USRDLL" /D "SFMPQAPI_EXPORTS" /D "ZLIB_DLL" /D "BZ_NO_STDIO" /FD /c
+# SUBTRACT CPP /YX
 # ADD BASE MTL /nologo /D "NDEBUG" /mktyplib203 /win32
 # ADD MTL /nologo /D "NDEBUG" /mktyplib203 /win32
 # ADD BASE RSC /l 0x409 /d "NDEBUG"
@@ -71,8 +72,8 @@ LINK32=link.exe
 # PROP Ignore_Export_Lib 0
 # PROP Target_Dir ""
 # ADD BASE CPP /nologo /MTd /W3 /Gm /GX /ZI /Od /D "WIN32" /D "_DEBUG" /D "_WINDOWS" /D "_MBCS" /D "_USRDLL" /D "SFMPQAPI_EXPORTS" /YX /FD /GZ /c
-# ADD CPP /nologo /MTd /W3 /Gm /GX /ZI /Od /D "WIN32" /D "_DEBUG" /D "_WINDOWS" /D "_MBCS" /D "_USRDLL" /D "SFMPQAPI_EXPORTS" /D "ZLIB_DLL" /YX /FD /GZ /c
-# SUBTRACT CPP /Fr
+# ADD CPP /nologo /MTd /W3 /Gm /GX /ZI /Od /D "WIN32" /D "_DEBUG" /D "_WINDOWS" /D "_MBCS" /D "_USRDLL" /D "SFMPQAPI_EXPORTS" /D "ZLIB_DLL" /D "BZ_NO_STDIO" /FD /GZ /c
+# SUBTRACT CPP /Fr /YX
 # ADD BASE MTL /nologo /D "_DEBUG" /mktyplib203 /win32
 # ADD MTL /nologo /D "_DEBUG" /mktyplib203 /win32
 # ADD BASE RSC /l 0x409 /d "_DEBUG"
@@ -99,7 +100,8 @@ LINK32=link.exe
 # PROP Ignore_Export_Lib 0
 # PROP Target_Dir ""
 # ADD BASE CPP /nologo /MT /W3 /GX /O2 /D "WIN32" /D "NDEBUG" /D "_WINDOWS" /D "_MBCS" /D "_USRDLL" /D "SFMPQAPI_EXPORTS" /YX /FD /c
-# ADD CPP /nologo /MT /W3 /GX /O2 /D "WIN32" /D "NDEBUG" /D "_WINDOWS" /D "_MBCS" /D "_USRDLL" /D "SFMPQAPI_EXPORTS" /D "ZLIB_DLL" /D "BETA" /YX /FD /c
+# ADD CPP /nologo /MT /W3 /GX /O2 /Ob2 /D "WIN32" /D "NDEBUG" /D "_WINDOWS" /D "_MBCS" /D "_USRDLL" /D "SFMPQAPI_EXPORTS" /D "ZLIB_DLL" /D "BZ_NO_STDIO" /D "BETA" /FD /c
+# SUBTRACT CPP /YX
 # ADD BASE MTL /nologo /D "NDEBUG" /mktyplib203 /win32
 # ADD MTL /nologo /D "NDEBUG" /mktyplib203 /win32
 # ADD BASE RSC /l 0x409 /d "NDEBUG"
@@ -125,26 +127,6 @@ LINK32=link.exe
 # PROP Default_Filter "cpp;c;cxx;rc;def;r;odl;idl;hpj;bat"
 # Begin Source File
 
-SOURCE=..\SComp\explode.c
-# End Source File
-# Begin Source File
-
-SOURCE=..\SComp\huffman.cpp
-# End Source File
-# Begin Source File
-
-SOURCE=..\SComp\implode.c
-# End Source File
-# Begin Source File
-
-SOURCE=..\SComp\SComp.cpp
-# End Source File
-# Begin Source File
-
-SOURCE=..\SComp\SErr.cpp
-# End Source File
-# Begin Source File
-
 SOURCE=.\SFmpqapi.cpp
 # End Source File
 # Begin Source File
@@ -159,16 +141,167 @@ SOURCE=.\SFmpqapi.odl
 
 SOURCE=.\SFmpqapi.rc
 # End Source File
+# End Group
+# Begin Group "Header Files"
+
+# PROP Default_Filter "h;hpp;hxx;hm;inl"
+# Begin Source File
+
+SOURCE=.\SFmpqapi.h
+# End Source File
+# End Group
+# Begin Group "Resource Files"
+
+# PROP Default_Filter "ico;cur;bmp;dlg;rc2;rct;bin;rgs;gif;jpg;jpeg;jpe"
+# Begin Source File
+
+SOURCE=.\about
+# End Source File
+# End Group
+# Begin Group "SComp"
+
+# PROP Default_Filter ""
+# Begin Group "Base"
+
+# PROP Default_Filter ""
+# Begin Group "Source Files (Base)"
+
+# PROP Default_Filter "cpp;c;cxx;rc;def;r;odl;idl;hpj;bat"
+# Begin Source File
+
+SOURCE=..\SComp\explode.c
+
+!IF  "$(CFG)" == "SFmpqapi - Win32 Release"
+
+# PROP Intermediate_Dir "Release/SComp"
+
+!ELSEIF  "$(CFG)" == "SFmpqapi - Win32 Debug"
+
+# PROP Intermediate_Dir "Debug/SComp"
+
+!ELSEIF  "$(CFG)" == "SFmpqapi - Win32 Beta release"
+
+# PROP Intermediate_Dir "Release/SComp"
+
+!ENDIF 
+
+# End Source File
+# Begin Source File
+
+SOURCE=..\SComp\huffman.cpp
+
+!IF  "$(CFG)" == "SFmpqapi - Win32 Release"
+
+# PROP Intermediate_Dir "Release/SComp"
+
+!ELSEIF  "$(CFG)" == "SFmpqapi - Win32 Debug"
+
+# PROP Intermediate_Dir "Debug/SComp"
+
+!ELSEIF  "$(CFG)" == "SFmpqapi - Win32 Beta release"
+
+# PROP Intermediate_Dir "Release/SComp"
+
+!ENDIF 
+
+# End Source File
+# Begin Source File
+
+SOURCE=..\SComp\implode.c
+
+!IF  "$(CFG)" == "SFmpqapi - Win32 Release"
+
+# PROP Intermediate_Dir "Release/SComp"
+
+!ELSEIF  "$(CFG)" == "SFmpqapi - Win32 Debug"
+
+# PROP Intermediate_Dir "Debug/SComp"
+
+!ELSEIF  "$(CFG)" == "SFmpqapi - Win32 Beta release"
+
+# PROP Intermediate_Dir "Release/SComp"
+
+!ENDIF 
+
+# End Source File
+# Begin Source File
+
+SOURCE=..\SComp\SComp.cpp
+
+!IF  "$(CFG)" == "SFmpqapi - Win32 Release"
+
+# PROP Intermediate_Dir "Release/SComp"
+
+!ELSEIF  "$(CFG)" == "SFmpqapi - Win32 Debug"
+
+# PROP Intermediate_Dir "Debug/SComp"
+
+!ELSEIF  "$(CFG)" == "SFmpqapi - Win32 Beta release"
+
+# PROP Intermediate_Dir "Release/SComp"
+
+!ENDIF 
+
+# End Source File
+# Begin Source File
+
+SOURCE=..\SComp\SErr.cpp
+
+!IF  "$(CFG)" == "SFmpqapi - Win32 Release"
+
+# PROP Intermediate_Dir "Release/SComp"
+
+!ELSEIF  "$(CFG)" == "SFmpqapi - Win32 Debug"
+
+# PROP Intermediate_Dir "Debug/SComp"
+
+!ELSEIF  "$(CFG)" == "SFmpqapi - Win32 Beta release"
+
+# PROP Intermediate_Dir "Release/SComp"
+
+!ENDIF 
+
+# End Source File
 # Begin Source File
 
 SOURCE=..\SComp\SMem.cpp
+
+!IF  "$(CFG)" == "SFmpqapi - Win32 Release"
+
+# PROP Intermediate_Dir "Release/SComp"
+
+!ELSEIF  "$(CFG)" == "SFmpqapi - Win32 Debug"
+
+# PROP Intermediate_Dir "Debug/SComp"
+
+!ELSEIF  "$(CFG)" == "SFmpqapi - Win32 Beta release"
+
+# PROP Intermediate_Dir "Release/SComp"
+
+!ENDIF 
+
 # End Source File
 # Begin Source File
 
 SOURCE=..\SComp\wave.cpp
+
+!IF  "$(CFG)" == "SFmpqapi - Win32 Release"
+
+# PROP Intermediate_Dir "Release/SComp"
+
+!ELSEIF  "$(CFG)" == "SFmpqapi - Win32 Debug"
+
+# PROP Intermediate_Dir "Debug/SComp"
+
+!ELSEIF  "$(CFG)" == "SFmpqapi - Win32 Beta release"
+
+# PROP Intermediate_Dir "Release/SComp"
+
+!ENDIF 
+
 # End Source File
 # End Group
-# Begin Group "Header Files"
+# Begin Group "Header Files (Base)"
 
 # PROP Default_Filter "h;hpp;hxx;hm;inl"
 # Begin Source File
@@ -181,19 +314,11 @@ SOURCE=..\SComp\pklib.h
 # End Source File
 # Begin Source File
 
-SOURCE=.\SComp.h
-# End Source File
-# Begin Source File
-
 SOURCE=..\SComp\SComp.h
 # End Source File
 # Begin Source File
 
 SOURCE=..\SComp\SErr.h
-# End Source File
-# Begin Source File
-
-SOURCE=.\SFmpqapi.h
 # End Source File
 # Begin Source File
 
@@ -203,26 +328,371 @@ SOURCE=..\SComp\SMem.h
 
 SOURCE=..\SComp\wave.h
 # End Source File
+# End Group
+# End Group
+# Begin Group "bzip2"
+
+# PROP Default_Filter ""
+# Begin Group "Source Files (bzip2)"
+
+# PROP Default_Filter "cpp;c;cxx;rc;def;r;odl;idl;hpj;bat"
 # Begin Source File
 
-SOURCE=..\SComp\zconf.h
+SOURCE=..\SComp\bzip2\blocksort.c
+
+!IF  "$(CFG)" == "SFmpqapi - Win32 Release"
+
+# PROP Intermediate_Dir "Release/SComp/bzip2"
+
+!ELSEIF  "$(CFG)" == "SFmpqapi - Win32 Debug"
+
+# PROP Intermediate_Dir "Debug/SComp/bzip2"
+
+!ELSEIF  "$(CFG)" == "SFmpqapi - Win32 Beta release"
+
+# PROP Intermediate_Dir "Release/SComp/bzip2"
+
+!ENDIF 
+
 # End Source File
 # Begin Source File
 
-SOURCE=..\SComp\zlib.h
+SOURCE=..\SComp\bzip2\bzlib.c
+
+!IF  "$(CFG)" == "SFmpqapi - Win32 Release"
+
+# PROP Intermediate_Dir "Release/SComp/bzip2"
+
+!ELSEIF  "$(CFG)" == "SFmpqapi - Win32 Debug"
+
+# PROP Intermediate_Dir "Debug/SComp/bzip2"
+
+!ELSEIF  "$(CFG)" == "SFmpqapi - Win32 Beta release"
+
+# PROP Intermediate_Dir "Release/SComp/bzip2"
+
+!ENDIF 
+
+# End Source File
+# Begin Source File
+
+SOURCE=..\SComp\bzip2\compress.c
+
+!IF  "$(CFG)" == "SFmpqapi - Win32 Release"
+
+# PROP Intermediate_Dir "Release/SComp/bzip2"
+
+!ELSEIF  "$(CFG)" == "SFmpqapi - Win32 Debug"
+
+# PROP Intermediate_Dir "Debug/SComp/bzip2"
+
+!ELSEIF  "$(CFG)" == "SFmpqapi - Win32 Beta release"
+
+# PROP Intermediate_Dir "Release/SComp/bzip2"
+
+!ENDIF 
+
+# End Source File
+# Begin Source File
+
+SOURCE=..\SComp\bzip2\crctable.c
+
+!IF  "$(CFG)" == "SFmpqapi - Win32 Release"
+
+# PROP Intermediate_Dir "Release/SComp/bzip2"
+
+!ELSEIF  "$(CFG)" == "SFmpqapi - Win32 Debug"
+
+# PROP Intermediate_Dir "Debug/SComp/bzip2"
+
+!ELSEIF  "$(CFG)" == "SFmpqapi - Win32 Beta release"
+
+# PROP Intermediate_Dir "Release/SComp/bzip2"
+
+!ENDIF 
+
+# End Source File
+# Begin Source File
+
+SOURCE=..\SComp\bzip2\decompress.c
+
+!IF  "$(CFG)" == "SFmpqapi - Win32 Release"
+
+# PROP Intermediate_Dir "Release/SComp/bzip2"
+
+!ELSEIF  "$(CFG)" == "SFmpqapi - Win32 Debug"
+
+# PROP Intermediate_Dir "Debug/SComp/bzip2"
+
+!ELSEIF  "$(CFG)" == "SFmpqapi - Win32 Beta release"
+
+# PROP Intermediate_Dir "Release/SComp/bzip2"
+
+!ENDIF 
+
+# End Source File
+# Begin Source File
+
+SOURCE=..\SComp\bzip2\huffman.c
+
+!IF  "$(CFG)" == "SFmpqapi - Win32 Release"
+
+# PROP Intermediate_Dir "Release/SComp/bzip2"
+
+!ELSEIF  "$(CFG)" == "SFmpqapi - Win32 Debug"
+
+# PROP Intermediate_Dir "Debug/SComp/bzip2"
+
+!ELSEIF  "$(CFG)" == "SFmpqapi - Win32 Beta release"
+
+# PROP Intermediate_Dir "Release/SComp/bzip2"
+
+!ENDIF 
+
+# End Source File
+# Begin Source File
+
+SOURCE=..\SComp\bzip2\randtable.c
+
+!IF  "$(CFG)" == "SFmpqapi - Win32 Release"
+
+# PROP Intermediate_Dir "Release/SComp/bzip2"
+
+!ELSEIF  "$(CFG)" == "SFmpqapi - Win32 Debug"
+
+# PROP Intermediate_Dir "Debug/SComp/bzip2"
+
+!ELSEIF  "$(CFG)" == "SFmpqapi - Win32 Beta release"
+
+# PROP Intermediate_Dir "Release/SComp/bzip2"
+
+!ENDIF 
+
 # End Source File
 # End Group
-# Begin Group "Resource Files"
+# Begin Group "Header Files (bzip2)"
 
-# PROP Default_Filter "ico;cur;bmp;dlg;rc2;rct;bin;rgs;gif;jpg;jpeg;jpe"
+# PROP Default_Filter "h;hpp;hxx;hm;inl"
 # Begin Source File
 
-SOURCE=.\about
+SOURCE=..\SComp\bzip2\bzlib.h
+# End Source File
+# Begin Source File
+
+SOURCE=..\SComp\bzip2\bzlib_private.h
 # End Source File
 # End Group
+# End Group
+# Begin Group "zlib"
+
+# PROP Default_Filter ""
+# Begin Group "Source Files (zlib)"
+
+# PROP Default_Filter "cpp;c;cxx;rc;def;r;odl;idl;hpj;bat"
 # Begin Source File
 
-SOURCE=..\SComp\ZLib_Static_min.lib
+SOURCE=..\SComp\zlib\adler32.c
+
+!IF  "$(CFG)" == "SFmpqapi - Win32 Release"
+
+# PROP Intermediate_Dir "Release/SComp/zlib"
+
+!ELSEIF  "$(CFG)" == "SFmpqapi - Win32 Debug"
+
+# PROP Intermediate_Dir "Debug/SComp/zlib"
+
+!ELSEIF  "$(CFG)" == "SFmpqapi - Win32 Beta release"
+
+# PROP Intermediate_Dir "Release/SComp/zlib"
+
+!ENDIF 
+
 # End Source File
+# Begin Source File
+
+SOURCE=..\SComp\zlib\compress.c
+
+!IF  "$(CFG)" == "SFmpqapi - Win32 Release"
+
+# PROP Intermediate_Dir "Release/SComp/zlib"
+
+!ELSEIF  "$(CFG)" == "SFmpqapi - Win32 Debug"
+
+# PROP Intermediate_Dir "Debug/SComp/zlib"
+
+!ELSEIF  "$(CFG)" == "SFmpqapi - Win32 Beta release"
+
+# PROP Intermediate_Dir "Release/SComp/zlib"
+
+!ENDIF 
+
+# End Source File
+# Begin Source File
+
+SOURCE=..\SComp\zlib\crc32.c
+
+!IF  "$(CFG)" == "SFmpqapi - Win32 Release"
+
+# PROP Intermediate_Dir "Release/SComp/zlib"
+
+!ELSEIF  "$(CFG)" == "SFmpqapi - Win32 Debug"
+
+# PROP Intermediate_Dir "Debug/SComp/zlib"
+
+!ELSEIF  "$(CFG)" == "SFmpqapi - Win32 Beta release"
+
+# PROP Intermediate_Dir "Release/SComp/zlib"
+
+!ENDIF 
+
+# End Source File
+# Begin Source File
+
+SOURCE=..\SComp\zlib\deflate.c
+
+!IF  "$(CFG)" == "SFmpqapi - Win32 Release"
+
+# PROP Intermediate_Dir "Release/SComp/zlib"
+
+!ELSEIF  "$(CFG)" == "SFmpqapi - Win32 Debug"
+
+# PROP Intermediate_Dir "Debug/SComp/zlib"
+
+!ELSEIF  "$(CFG)" == "SFmpqapi - Win32 Beta release"
+
+# PROP Intermediate_Dir "Release/SComp/zlib"
+
+!ENDIF 
+
+# End Source File
+# Begin Source File
+
+SOURCE=..\SComp\zlib\inffast.c
+
+!IF  "$(CFG)" == "SFmpqapi - Win32 Release"
+
+# PROP Intermediate_Dir "Release/SComp/zlib"
+
+!ELSEIF  "$(CFG)" == "SFmpqapi - Win32 Debug"
+
+# PROP Intermediate_Dir "Debug/SComp/zlib"
+
+!ELSEIF  "$(CFG)" == "SFmpqapi - Win32 Beta release"
+
+# PROP Intermediate_Dir "Release/SComp/zlib"
+
+!ENDIF 
+
+# End Source File
+# Begin Source File
+
+SOURCE=..\SComp\zlib\inflate.c
+
+!IF  "$(CFG)" == "SFmpqapi - Win32 Release"
+
+# PROP Intermediate_Dir "Release/SComp/zlib"
+
+!ELSEIF  "$(CFG)" == "SFmpqapi - Win32 Debug"
+
+# PROP Intermediate_Dir "Debug/SComp/zlib"
+
+!ELSEIF  "$(CFG)" == "SFmpqapi - Win32 Beta release"
+
+# PROP Intermediate_Dir "Release/SComp/zlib"
+
+!ENDIF 
+
+# End Source File
+# Begin Source File
+
+SOURCE=..\SComp\zlib\inftrees.c
+
+!IF  "$(CFG)" == "SFmpqapi - Win32 Release"
+
+# PROP Intermediate_Dir "Release/SComp/zlib"
+
+!ELSEIF  "$(CFG)" == "SFmpqapi - Win32 Debug"
+
+# PROP Intermediate_Dir "Debug/SComp/zlib"
+
+!ELSEIF  "$(CFG)" == "SFmpqapi - Win32 Beta release"
+
+# PROP Intermediate_Dir "Release/SComp/zlib"
+
+!ENDIF 
+
+# End Source File
+# Begin Source File
+
+SOURCE=..\SComp\zlib\trees.c
+
+!IF  "$(CFG)" == "SFmpqapi - Win32 Release"
+
+# PROP Intermediate_Dir "Release/SComp/zlib"
+
+!ELSEIF  "$(CFG)" == "SFmpqapi - Win32 Debug"
+
+# PROP Intermediate_Dir "Debug/SComp/zlib"
+
+!ELSEIF  "$(CFG)" == "SFmpqapi - Win32 Beta release"
+
+# PROP Intermediate_Dir "Release/SComp/zlib"
+
+!ENDIF 
+
+# End Source File
+# Begin Source File
+
+SOURCE=..\SComp\zlib\uncompr.c
+
+!IF  "$(CFG)" == "SFmpqapi - Win32 Release"
+
+# PROP Intermediate_Dir "Release/SComp/zlib"
+
+!ELSEIF  "$(CFG)" == "SFmpqapi - Win32 Debug"
+
+# PROP Intermediate_Dir "Debug/SComp/zlib"
+
+!ELSEIF  "$(CFG)" == "SFmpqapi - Win32 Beta release"
+
+# PROP Intermediate_Dir "Release/SComp/zlib"
+
+!ENDIF 
+
+# End Source File
+# Begin Source File
+
+SOURCE=..\SComp\zlib\zutil.c
+
+!IF  "$(CFG)" == "SFmpqapi - Win32 Release"
+
+# PROP Intermediate_Dir "Release/SComp/zlib"
+
+!ELSEIF  "$(CFG)" == "SFmpqapi - Win32 Debug"
+
+# PROP Intermediate_Dir "Debug/SComp/zlib"
+
+!ELSEIF  "$(CFG)" == "SFmpqapi - Win32 Beta release"
+
+# PROP Intermediate_Dir "Release/SComp/zlib"
+
+!ENDIF 
+
+# End Source File
+# End Group
+# Begin Group "Header Files (zlib)"
+
+# PROP Default_Filter "h;hpp;hxx;hm;inl"
+# Begin Source File
+
+SOURCE=..\SComp\zlib\zconf.h
+# End Source File
+# Begin Source File
+
+SOURCE=..\SComp\zlib\zlib.h
+# End Source File
+# End Group
+# End Group
+# End Group
 # End Target
 # End Project
