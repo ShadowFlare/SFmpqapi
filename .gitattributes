@@ -1,0 +1,6 @@
+*.bas -crlf
+*.dsp -crlf
+*.dsw -crlf
+*.rtf -crlf
+*.sln -crlf
+*.vcproj -crlf
