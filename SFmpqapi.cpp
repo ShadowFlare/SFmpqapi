@@ -3230,7 +3230,7 @@ MPQHANDLE GetFreeHashTableEntry(MPQHANDLE hMPQ, LPCSTR lpFileName, LCID FileLoca
 	DWORD i=dwTablePos, nFirstFree = 0xFFFFFFFF;
 	do
 	{
-		if ((mpqOpenArc->lpHashTable[i].dwBlockTableIndex&0xFFFFFFFE)==0xFFFFFFFE && nFirstFree == 0xFFFFFFFF)
+		if ((mpqOpenArc->lpHashTable[i].dwBlockTableIndex&0xFFFFFFFE)==0xFFFFFFFE && (nFirstFree == 0xFFFFFFFF || mpqOpenArc->lpHashTable[i].dwBlockTableIndex == 0xFFFFFFFF))
 		{
 			if (mpqOpenArc->lpHashTable[i].dwBlockTableIndex == 0xFFFFFFFF)
 			{
