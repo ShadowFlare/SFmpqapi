@@ -1526,7 +1526,10 @@ BOOL SFMPQAPI WINAPI SFileListFiles(MPQHANDLE hMPQ, LPCSTR lpFileLists, FILELIST
 				lpListBuffer[i].dwCompressedSize = mpqOpenArc->lpBlockTable[dwBlockIndex].dwCompressedSize;
 				lpListBuffer[i].dwFullSize = mpqOpenArc->lpBlockTable[dwBlockIndex].dwFullSize;
 				lpListBuffer[i].dwFlags = mpqOpenArc->lpBlockTable[dwBlockIndex].dwFlags;
-				lpListBuffer[i].dwFileExists=0xFFFFFFFF;
+				if (dwFlags & SFILE_LIST_FLAG_UNKNOWN)
+					lpListBuffer[i].dwFileExists = 1;
+				else
+					lpListBuffer[i].dwFileExists=0xFFFFFFFF;
 				SetFilePointer(mpqOpenArc->hFile,mpqOpenArc->dwMPQStart+mpqOpenArc->lpBlockTable[dwBlockIndex].dwFileOffset+0x40,0,FILE_BEGIN);
 				ReadFile(mpqOpenArc->hFile,lpListBuffer[i].szFileName,260,&tsz,0);
 
@@ -1537,6 +1540,10 @@ BOOL SFMPQAPI WINAPI SFileListFiles(MPQHANDLE hMPQ, LPCSTR lpFileLists, FILELIST
 				}
 				else {
 					sprintf(lpListBuffer[i].szFileName,UNKNOWN_OUT,i);
+					if (dwFlags & SFILE_LIST_FLAG_UNKNOWN) {
+						lpListBuffer[i].dwFileExists |= 2;
+					}
+
 					if (dwFlags&SFILE_LIST_ONLY_KNOWN) {
 						lpListBuffer[i].dwFileExists = 0;
 					}
@@ -1690,7 +1697,10 @@ BOOL SFMPQAPI WINAPI SFileListFiles(MPQHANDLE hMPQ, LPCSTR lpFileLists, FILELIST
 			lpListBuffer[i].dwCompressedSize = mpqOpenArc->lpBlockTable[dwBlockIndex].dwCompressedSize;
 			lpListBuffer[i].dwFullSize = mpqOpenArc->lpBlockTable[dwBlockIndex].dwFullSize;
 			lpListBuffer[i].dwFlags = mpqOpenArc->lpBlockTable[dwBlockIndex].dwFlags;
-			lpListBuffer[i].dwFileExists=0xFFFFFFFF;
+			if (dwFlags & SFILE_LIST_FLAG_UNKNOWN)
+				lpListBuffer[i].dwFileExists = 1;
+			else
+				lpListBuffer[i].dwFileExists=0xFFFFFFFF;
 			for (j=0;j<dwTotalLines;j++) {
 				if (mpqOpenArc->lpHashTable[i].dwNameHashA==lpdwNameHashA[j] && mpqOpenArc->lpHashTable[i].dwNameHashB==lpdwNameHashB[j]) {
 					strncpy(lpListBuffer[i].szFileName,lpNames[j],260);
@@ -1701,6 +1711,10 @@ BOOL SFMPQAPI WINAPI SFileListFiles(MPQHANDLE hMPQ, LPCSTR lpFileLists, FILELIST
 				}
 				if (j+1==dwTotalLines) {
 					sprintf(lpListBuffer[i].szFileName,UNKNOWN_OUT,i);
+					if (dwFlags & SFILE_LIST_FLAG_UNKNOWN) {
+						lpListBuffer[i].dwFileExists |= 2;
+					}
+
 					if (dwFlags&SFILE_LIST_ONLY_KNOWN) {
 						lpListBuffer[i].dwFileExists = 0;
 					}

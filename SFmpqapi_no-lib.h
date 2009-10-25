@@ -265,6 +265,7 @@ long SFMpqCompareVersion();
 #define SFILE_LIST_MEMORY_LIST  0x01 // Specifies that lpFilelists is a file list from memory, rather than being a list of file lists
 #define SFILE_LIST_ONLY_KNOWN   0x02 // Only list files that the function finds a name for
 #define SFILE_LIST_ONLY_UNKNOWN 0x04 // Only list files that the function does not find a name for
+#define SFILE_LIST_FLAG_UNKNOWN 0x08 // Use without SFILE_LIST_ONLY_KNOWN or SFILE_LIST_FLAG_UNKNOWN to list all files, but set dwFileExists to 3 if file's name is not found
 
 // SFileOpenArchive flags
 #define SFILE_OPEN_HARD_DISK_FILE 0x0000 //Open archive without regard to the drive type it resides on

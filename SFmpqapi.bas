@@ -199,6 +199,7 @@ Public Const SFILE_INFO_HASH_INDEX As Long = &HC 'Hash index of file in MPQ
 Public Const SFILE_LIST_MEMORY_LIST  As Long = &H1 ' Specifies that lpFilelists is a file list from memory, rather than being a list of file lists
 Public Const SFILE_LIST_ONLY_KNOWN   As Long = &H2 ' Only list files that the function finds a name for
 Public Const SFILE_LIST_ONLY_UNKNOWN As Long = &H4 ' Only list files that the function does not find a name for
+Public Const SFILE_LIST_FLAG_UNKNOWN As Long = &H8 ' Use without SFILE_LIST_ONLY_KNOWN or SFILE_LIST_FLAG_UNKNOWN to list all files, but set dwFileExists to 3 if file's name is not found
 
 Public Const SFILE_TYPE_MPQ As Long = &H1
 Public Const SFILE_TYPE_FILE As Long = &H2
