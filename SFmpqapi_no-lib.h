@@ -1,6 +1,6 @@
 /*
 
-  ShadowFlare MPQ API Library. (c) ShadowFlare Software 2002-2008
+  ShadowFlare MPQ API Library. (c) ShadowFlare Software 2002-2009
   License information for this code is in license.txt and
   included in this file at the end of this comment.
 
@@ -34,6 +34,10 @@
     using SFileSetLocale
   - Fixed a bug that caused (listfile) to get cleared if adding
     files with a locale ID other than 0
+  - Added MpqOpenArchiveForUpdateEx which allows creating
+    archives with different block sizes
+  - SFileListFiles can list the contents of bncache.dat without
+    needing an external list
 
   06/12/2002 1.07 (ShadowFlare)
   - No longer requires Storm.dll to compress or decompress
@@ -125,7 +129,7 @@
 
   License information:
 
-  Copyright (c) 2002-2008, ShadowFlare <blakflare@hotmail.com>
+  Copyright (c) 2002-2009, ShadowFlare <blakflare@hotmail.com>
   All rights reserved.
 
   Redistribution and use in source and binary forms, with or without
@@ -212,6 +216,10 @@ long SFMpqCompareVersion();
 #define MOAU_MAINTAIN_ATTRIBUTES 0x02 //Will be used in a future version to create the (attributes) file. Contact me about any information you may have about the format of this file
 #define MOAU_MAINTAIN_LISTFILE   0x01 //Creates and maintains a list of files in archive when they are added, replaced, or deleted
 
+// MpqOpenArchiveForUpdateEx constants
+#define DEFAULT_BLOCK_SIZE 3 // 512 << number = block size
+#define USE_DEFAULT_BLOCK_SIZE 0xFFFFFFFF // Use default block size that is defined internally
+
 // MpqAddFileToArchive flags
 #define MAFA_EXISTS           0x80000000 //This flag will be added if not present
 #define MAFA_UNKNOWN40000000  0x40000000 //Unknown flag
@@ -224,12 +232,13 @@ long SFMpqCompareVersion();
 // MpqAddFileToArchiveEx compression flags
 #define MAFA_COMPRESS_STANDARD 0x08 //Standard PKWare DCL compression
 #define MAFA_COMPRESS_DEFLATE  0x02 //ZLib's deflate compression
-#define MAFA_COMPRESS_WAVE     0x81 //Standard wave compression
-#define MAFA_COMPRESS_WAVE2    0x41 //Unused wave compression
+#define MAFA_COMPRESS_BZIP2    0x10 //bzip2 compression
+#define MAFA_COMPRESS_WAVE     0x81 //Stereo wave compression
+#define MAFA_COMPRESS_WAVE2    0x41 //Mono wave compression
 
 // Flags for individual compression types used for wave compression
-#define MAFA_COMPRESS_WAVECOMP1 0x80 //Main compressor for standard wave compression
-#define	MAFA_COMPRESS_WAVECOMP2 0x40 //Main compressor for unused wave compression
+#define MAFA_COMPRESS_WAVECOMP1 0x80 //Main compressor for stereo wave compression
+#define	MAFA_COMPRESS_WAVECOMP2 0x40 //Main compressor for mono wave compression
 #define MAFA_COMPRESS_WAVECOMP3 0x01 //Secondary compressor for wave compression
 
 // ZLib deflate compression level constants (used with MpqAddFileToArchiveEx and MpqAddFileFromBufferEx)
@@ -256,6 +265,7 @@ long SFMpqCompareVersion();
 #define SFILE_INFO_LOCALEID        0x0A //Locale ID of file in MPQ
 #define SFILE_INFO_PRIORITY        0x0B //Priority of open MPQ
 #define SFILE_INFO_HASH_INDEX      0x0C //Hash index of file in MPQ
+#define SFILE_INFO_BLOCK_INDEX     0x0D //Block table index of file in MPQ
 
 // Return values of SFileGetFileInfo when SFILE_INFO_TYPE flag is used
 #define SFILE_TYPE_MPQ  0x01
@@ -265,7 +275,7 @@ long SFMpqCompareVersion();
 #define SFILE_LIST_MEMORY_LIST  0x01 // Specifies that lpFilelists is a file list from memory, rather than being a list of file lists
 #define SFILE_LIST_ONLY_KNOWN   0x02 // Only list files that the function finds a name for
 #define SFILE_LIST_ONLY_UNKNOWN 0x04 // Only list files that the function does not find a name for
-#define SFILE_LIST_FLAG_UNKNOWN 0x08 // Use without SFILE_LIST_ONLY_KNOWN or SFILE_LIST_FLAG_UNKNOWN to list all files, but set dwFileExists to 3 if file's name is not found
+#define SFILE_LIST_FLAG_UNKNOWN 0x08 // Use without SFILE_LIST_ONLY_KNOWN or SFILE_LIST_FLAG_UNKNOWN to list all files, but will set dwFileExists to 3 if file's name is not found
 
 // SFileOpenArchive flags
 #define SFILE_OPEN_HARD_DISK_FILE 0x0000 //Open archive without regard to the drive type it resides on
@@ -418,6 +428,7 @@ extern BOOL      (WINAPI* MpqDeleteFile)(MPQHANDLE hMPQ, LPCSTR lpFileName);
 extern BOOL      (WINAPI* MpqCompactArchive)(MPQHANDLE hMPQ);
 
 // Extra archive editing functions
+extern MPQHANDLE (WINAPI* MpqOpenArchiveForUpdateEx)(LPCSTR lpFileName, DWORD dwFlags, DWORD dwMaximumFilesInArchive, DWORD dwBlockSize);
 extern BOOL      (WINAPI* MpqAddFileToArchiveEx)(MPQHANDLE hMPQ, LPCSTR lpSourceFileName, LPCSTR lpDestFileName, DWORD dwFlags, DWORD dwCompressionType, DWORD dwCompressLevel);
 extern BOOL      (WINAPI* MpqAddFileFromBufferEx)(MPQHANDLE hMPQ, LPVOID lpBuffer, DWORD dwLength, LPCSTR lpFileName, DWORD dwFlags, DWORD dwCompressionType, DWORD dwCompressLevel);
 extern BOOL      (WINAPI* MpqAddFileFromBuffer)(MPQHANDLE hMPQ, LPVOID lpBuffer, DWORD dwLength, LPCSTR lpFileName, DWORD dwFlags);

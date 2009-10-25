@@ -1,6 +1,6 @@
 /*
 
-  ShadowFlare MPQ API Library. (c) ShadowFlare Software 2002-2008
+  ShadowFlare MPQ API Library. (c) ShadowFlare Software 2002-2009
   License information for this code is in license.txt and
   included in this file at the end of this comment.
 
@@ -129,7 +129,7 @@
 
   License information:
 
-  Copyright (c) 2002-2008, ShadowFlare <blakflare@hotmail.com>
+  Copyright (c) 2002-2009, ShadowFlare <blakflare@hotmail.com>
   All rights reserved.
 
   Redistribution and use in source and binary forms, with or without
@@ -239,12 +239,13 @@ long SFMPQAPI __inline SFMpqCompareVersion();
 // MpqAddFileToArchiveEx compression flags
 #define MAFA_COMPRESS_STANDARD 0x08 //Standard PKWare DCL compression
 #define MAFA_COMPRESS_DEFLATE  0x02 //ZLib's deflate compression
-#define MAFA_COMPRESS_WAVE     0x81 //Standard wave compression
-#define MAFA_COMPRESS_WAVE2    0x41 //Unused wave compression
+#define MAFA_COMPRESS_BZIP2    0x10 //bzip2 compression
+#define MAFA_COMPRESS_WAVE     0x81 //Stereo wave compression
+#define MAFA_COMPRESS_WAVE2    0x41 //Mono wave compression
 
 // Flags for individual compression types used for wave compression
-#define MAFA_COMPRESS_WAVECOMP1 0x80 //Main compressor for standard wave compression
-#define	MAFA_COMPRESS_WAVECOMP2 0x40 //Main compressor for unused wave compression
+#define MAFA_COMPRESS_WAVECOMP1 0x80 //Main compressor for stereo wave compression
+#define	MAFA_COMPRESS_WAVECOMP2 0x40 //Main compressor for mono wave compression
 #define MAFA_COMPRESS_WAVECOMP3 0x01 //Secondary compressor for wave compression
 
 // ZLib deflate compression level constants (used with MpqAddFileToArchiveEx and MpqAddFileFromBufferEx)
@@ -281,7 +282,7 @@ long SFMPQAPI __inline SFMpqCompareVersion();
 #define SFILE_LIST_MEMORY_LIST  0x01 // Specifies that lpFilelists is a file list from memory, rather than being a list of file lists
 #define SFILE_LIST_ONLY_KNOWN   0x02 // Only list files that the function finds a name for
 #define SFILE_LIST_ONLY_UNKNOWN 0x04 // Only list files that the function does not find a name for
-#define SFILE_LIST_FLAG_UNKNOWN 0x08 // Use without SFILE_LIST_ONLY_KNOWN or SFILE_LIST_FLAG_UNKNOWN to list all files, but set dwFileExists to 3 if file's name is not found
+#define SFILE_LIST_FLAG_UNKNOWN 0x08 // Use without SFILE_LIST_ONLY_KNOWN or SFILE_LIST_FLAG_UNKNOWN to list all files, but will set dwFileExists to 3 if file's name is not found
 
 // SFileOpenArchive flags
 #define SFILE_OPEN_HARD_DISK_FILE 0x0000 //Open archive without regard to the drive type it resides on

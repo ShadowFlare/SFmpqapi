@@ -364,6 +364,16 @@ BOOL WINAPI MpqCompactArchive_stub(MPQHANDLE hMPQ)
 	return FALSE;
 }
 
+MPQHANDLE WINAPI MpqOpenArchiveForUpdateEx_stub(LPCSTR lpFileName, DWORD dwFlags, DWORD dwMaximumFilesInArchive, DWORD dwBlockSize)
+{
+	LoadSFMpqDll();
+	if (hSFMpq) {
+		*(FARPROC *)&MpqOpenArchiveForUpdateEx = GetProcAddress(hSFMpq,"MpqOpenArchiveForUpdateEx");
+		if (MpqOpenArchiveForUpdateEx) return MpqOpenArchiveForUpdateEx(lpFileName,dwFlags,dwMaximumFilesInArchive,dwBlockSize);
+	}
+	return INVALID_HANDLE_VALUE;
+}
+
 BOOL WINAPI MpqAddFileToArchiveEx_stub(MPQHANDLE hMPQ, LPCSTR lpSourceFileName, LPCSTR lpDestFileName, DWORD dwFlags, DWORD dwCompressionType, DWORD dwCompressLevel)
 {
 	LoadSFMpqDll();
@@ -495,6 +505,7 @@ BOOL      (WINAPI* MpqRenameFile)(MPQHANDLE hMPQ, LPCSTR lpcOldFileName, LPCSTR 
 BOOL      (WINAPI* MpqDeleteFile)(MPQHANDLE hMPQ, LPCSTR lpFileName) = MpqDeleteFile_stub;
 BOOL      (WINAPI* MpqCompactArchive)(MPQHANDLE hMPQ) = MpqCompactArchive_stub;
 
+MPQHANDLE (WINAPI* MpqOpenArchiveForUpdateEx)(LPCSTR lpFileName, DWORD dwFlags, DWORD dwMaximumFilesInArchive, DWORD dwBlockSize) = MpqOpenArchiveForUpdateEx_stub;
 BOOL      (WINAPI* MpqAddFileToArchiveEx)(MPQHANDLE hMPQ, LPCSTR lpSourceFileName, LPCSTR lpDestFileName, DWORD dwFlags, DWORD dwCompressionType, DWORD dwCompressLevel) = MpqAddFileToArchiveEx_stub;
 BOOL      (WINAPI* MpqAddFileFromBufferEx)(MPQHANDLE hMPQ, LPVOID lpBuffer, DWORD dwLength, LPCSTR lpFileName, DWORD dwFlags, DWORD dwCompressionType, DWORD dwCompressLevel) = MpqAddFileFromBufferEx_stub;
 BOOL      (WINAPI* MpqAddFileFromBuffer)(MPQHANDLE hMPQ, LPVOID lpBuffer, DWORD dwLength, LPCSTR lpFileName, DWORD dwFlags) = MpqAddFileFromBuffer_stub;
@@ -555,6 +566,7 @@ SFMPQAPI_DELAY_LOADER::~SFMPQAPI_DELAY_LOADER()
 	MpqDeleteFile = 0;
 	MpqCompactArchive = 0;
 
+	MpqOpenArchiveForUpdateEx = 0;
 	MpqAddFileToArchiveEx = 0;
 	MpqAddFileFromBufferEx = 0;
 	MpqAddFileFromBuffer = 0;

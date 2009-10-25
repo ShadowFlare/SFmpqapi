@@ -61,6 +61,12 @@ library SFMPQAPI
 		MOAU_MAINTAIN_LISTFILE =0x01,
 	} MpqOpenArchiveForUpdate_Flags;
 
+	[helpstring("MpqOpenArchiveForUpdateEx constants")]
+	typedef enum {
+		DEFAULT_BLOCK_SIZE = 3,
+		USE_DEFAULT_BLOCK_SIZE = 0xFFFFFFFF,
+	} MpqOpenArchiveForUpdateEx_Constants;
+
 	[helpstring("MpqAddFileToArchive flags")]
 	typedef enum {
 		MAFA_EXISTS =          0x80000000,
@@ -76,6 +82,7 @@ library SFMPQAPI
 	typedef enum {
 		MAFA_COMPRESS_STANDARD = 0x08,
 		MAFA_COMPRESS_DEFLATE  = 0x02,
+		MAFA_COMPRESS_BZIP2    = 0x10,
 		MAFA_COMPRESS_WAVE     = 0x81,
 		MAFA_COMPRESS_WAVE2    = 0x41,
 		MAFA_COMPRESS_WAVECOMP1 = 0x80,
@@ -112,20 +119,22 @@ library SFMPQAPI
 		SFILE_INFO_LOCALEID =       0x0A,
 		SFILE_INFO_PRIORITY =       0x0B,
 		SFILE_INFO_HASH_INDEX =     0x0C,
+		SFILE_INFO_BLOCK_INDEX =    0x0D,
 	} SFileGetFileInfo_Flags;
-
-	[helpstring("SFileListFiles flags")]
-	typedef enum {
-		SFILE_LIST_MEMORY_LIST  =0x01,
-		SFILE_LIST_ONLY_KNOWN   =0x02,
-		SFILE_LIST_ONLY_UNKNOWN =0x04,
-	} SFileListFiles_Flags;
 
 	[helpstring("Handle type constants")]
 	typedef enum {
 		SFILE_TYPE_MPQ = 0x01,
 		SFILE_TYPE_FILE =0x02,
 	} Handle_Type_Constants;
+
+	[helpstring("SFileListFiles flags")]
+	typedef enum {
+		SFILE_LIST_MEMORY_LIST  =0x01,
+		SFILE_LIST_ONLY_KNOWN   =0x02,
+		SFILE_LIST_ONLY_UNKNOWN =0x04,
+		SFILE_LIST_FLAG_UNKNOWN =0x08,
+	} SFileListFiles_Flags;
 
 	[helpstring("SFileOpenArchive flags")]
 	typedef enum {
@@ -179,14 +188,14 @@ library SFMPQAPI
 			float  WINAPI MpqGetVersion();
 		[entry("SFMpqDestroy"),helpstring("This no longer needs to be called; it is only provided for compatibility with older versions")]
 			void   WINAPI SFMpqDestroy();
+		[entry("AboutSFMpq"),helpstring("Displays an about page in a web browser (this has only been tested in Internet Explorer)")]
+			void   WINAPI AboutSFMpq();
 		[entry("SFMpqGetVersionString"),helpstring("")]
 			LPCSTR WINAPI SFMpqGetVersionString();
 		[entry("SFMpqGetVersionString2"),helpstring("SFMpqGetVersionString2's return value is the required length of the buffer plus the terminating null, so use SFMpqGetVersionString2(0, 0) to get the length.")]
 			DWORD  WINAPI SFMpqGetVersionString2(LPCSTR lpBuffer, DWORD dwBufferLength);
 		[entry("SFMpqGetVersion"),helpstring("")]
 			SFMPQVERSION WINAPI SFMpqGetVersion();
-		[entry("SFMpqCompareVersion"),helpstring("Returns 0 if the dll version is equal to the version your program was compiled with, 1 if the dll is newer, -1 if the dll is older.")]
-			long SFMpqCompareVersion();
 	};
 
 	[helpstring("Storm SFile emulated functions")]
@@ -255,6 +264,8 @@ library SFMPQAPI
 			BOOL      WINAPI MpqDeleteFile(MPQHANDLE hMPQ, LPCSTR lpFileName);
 		[entry("MpqCompactArchive"),helpstring("")]
 			BOOL      WINAPI MpqCompactArchive(MPQHANDLE hMPQ);
+		[entry("MpqOpenArchiveForUpdateEx"),helpstring("")]
+			MPQHANDLE WINAPI MpqOpenArchiveForUpdateEx(LPCSTR lpFileName, DWORD dwFlags, DWORD dwMaximumFilesInArchive, DWORD dwBlockSize);
 		[entry("MpqAddFileToArchiveEx"),helpstring("")]
 			BOOL      WINAPI MpqAddFileToArchiveEx(MPQHANDLE hMPQ, LPCSTR lpSourceFileName, LPCSTR lpDestFileName, DWORD dwFlags, DWORD dwCompressionType, DWORD dwCompressLevel);
 		[entry("MpqAddFileFromBufferEx"),helpstring("")]

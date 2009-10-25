@@ -1,8 +1,9 @@
 Attribute VB_Name = "SFmpqapi"
 Option Explicit
 
-'  ShadowFlare MPQ API Library. (c) ShadowFlare Software 2002-2008
-'  License information for this code is in license.txt
+'  ShadowFlare MPQ API Library. (c) ShadowFlare Software 2002-2009
+'  License information for this code is in license.txt and
+'  included in this file at the end of this comment.
 
 '  All functions below are actual functions that are part of this
 '  library and do not need any additional dll files.  It does not
@@ -22,6 +23,23 @@ Option Explicit
 '  most likely result in a crash.
 
 '  Revision History:
+'  (Release date) 1.08 (ShadowFlare)
+'  - Fixed a buffer overflow that would occur when reading files
+'    if neither using a buffer that is large enough to contain the
+'    entire file nor has a size that is a multiple of 4096
+'  - Added SFileOpenFileAsArchive which opens an archive that is
+'    contained within an already open archive
+'  - Added MpqRenameAndSetFileLocale and MpqDeleteFileWithLocale.
+'    These have extra parameters that allow you to use them with
+'    files having language codes other than what was last set
+'    using SFileSetLocale
+'  - Fixed a bug that caused (listfile) to get cleared if adding
+'    files with a locale ID other than 0
+'  - Added MpqOpenArchiveForUpdateEx which allows creating
+'    archives with different block sizes
+'  - SFileListFiles can list the contents of bncache.dat without
+'    needing an external list
+
 '  06/12/2002 1.07 (ShadowFlare)
 '  - No longer requires Storm.dll to compress or decompress
 '    Warcraft III files
@@ -110,6 +128,33 @@ Option Explicit
 
 '  Any comments or suggestions are accepted at blakflare@hotmail.com (ShadowFlare)
 
+'  License information:
+
+'  Copyright (c) 2002-2009, ShadowFlare <blakflare@hotmail.com>
+'  All rights reserved.
+
+'  Redistribution and use in source and binary forms, with or without
+'  modification, are permitted provided that the following conditions
+'  are met:
+
+'  1. Redistributions of source code must retain the above copyright
+'     notice, this list of conditions and the following disclaimer.
+'  2. Redistributions in binary form must reproduce the above copyright
+'     notice, this list of conditions and the following disclaimer in the
+'     documentation and/or other materials provided with the distribution.
+
+'  THIS SOFTWARE IS PROVIDED BY THE AUTHOR AND CONTRIBUTORS "AS IS" AND
+'  ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE
+'  IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE
+'  ARE DISCLAIMED. IN NO EVENT SHALL THE AUTHOR OR CONTRIBUTORS BE LIABLE
+'  FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL
+'  DAMAGES (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS
+'  OR SERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION)
+'  HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT
+'  LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY
+'  OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF
+'  SUCH DAMAGE.
+
 Type SFMPQVERSION
     Major As Integer
     Minor As Integer
@@ -125,6 +170,8 @@ Declare Function MpqGetVersionString Lib "SFmpq.dll" () As String
 Declare Function MpqGetVersion Lib "SFmpq.dll" () As Single
 
 Declare Sub SFMpqDestroy Lib "SFmpq.dll" () ' This no longer needs to be called.  It is only provided for compatibility with older versions
+
+Declare Sub AboutSFMpq Lib "SFmpq.dll" () ' Displays an about page in a web browser (this has only been tested in Internet Explorer). This is only for the dll version of SFmpq
 
 ' SFMpqGetVersionString2's return value is the required length of the buffer plus
 ' the terminating null, so use SFMpqGetVersionString2(ByVal 0&, 0) to get the length.
@@ -148,7 +195,12 @@ Public Const MOAU_CREATE_ALWAYS As Long = &H8 'Was wrongly named MOAU_CREATE_NEW
 Public Const MOAU_OPEN_EXISTING As Long = &H4
 Public Const MOAU_OPEN_ALWAYS As Long = &H20
 Public Const MOAU_READ_ONLY As Long = &H10 'Must be used with MOAU_OPEN_EXISTING
+Public Const MOAU_MAINTAIN_ATTRIBUTES As Long = &H2 'Will be used in a future version to create the (attributes) file
 Public Const MOAU_MAINTAIN_LISTFILE As Long = &H1
+
+' MpqOpenArchiveForUpdateEx constants
+Public Const DEFAULT_BLOCK_SIZE As Long = 3 ' 512 << number = block size
+Public Const USE_DEFAULT_BLOCK_SIZE As Long = &HFFFF ' Use default block size that is defined internally
 
 ' MpqAddFileToArchive flags
 Public Const MAFA_EXISTS As Long = &H80000000 'Will be added if not present
@@ -162,12 +214,13 @@ Public Const MAFA_REPLACE_EXISTING As Long = &H1
 ' MpqAddFileToArchiveEx compression flags
 Public Const MAFA_COMPRESS_STANDARD As Long = &H8 'Standard PKWare DCL compression
 Public Const MAFA_COMPRESS_DEFLATE  As Long = &H2 'ZLib's deflate compression
-Public Const MAFA_COMPRESS_WAVE    As Long = &H81 'Standard wave compression
-Public Const MAFA_COMPRESS_WAVE2   As Long = &H41 'Unused wave compression
+Public Const MAFA_COMPRESS_BZIP2   As Long = &H10 'bzip2 compression
+Public Const MAFA_COMPRESS_WAVE    As Long = &H81 'Stereo wave compression
+Public Const MAFA_COMPRESS_WAVE2   As Long = &H41 'Mono wave compression
 
 ' Flags for individual compression types used for wave compression
-Public Const MAFA_COMPRESS_WAVECOMP1 As Long = &H80 'Main compressor for standard wave compression
-Public Const MAFA_COMPRESS_WAVECOMP2 As Long = &H40 'Main compressor for unused wave compression
+Public Const MAFA_COMPRESS_WAVECOMP1 As Long = &H80 'Main compressor for stereo wave compression
+Public Const MAFA_COMPRESS_WAVECOMP2 As Long = &H40 'Main compressor for mono wave compression
 Public Const MAFA_COMPRESS_WAVECOMP3  As Long = &H1 'Secondary compressor for wave compression
 
 ' ZLib deflate compression level constants (used with MpqAddFileToArchiveEx and MpqAddFileFromBufferEx)
@@ -194,15 +247,17 @@ Public Const SFILE_INFO_POSITION As Long = &H9 'Position of file pointer in file
 Public Const SFILE_INFO_LOCALEID As Long = &HA 'Locale ID of file in MPQ
 Public Const SFILE_INFO_PRIORITY As Long = &HB 'Priority of open MPQ
 Public Const SFILE_INFO_HASH_INDEX As Long = &HC 'Hash index of file in MPQ
+Public Const SFILE_INFO_BLOCK_INDEX As Long = &HD 'Block table index of file in MPQ
+
+' Return values of SFileGetFileInfo when SFILE_INFO_TYPE flag is used
+Public Const SFILE_TYPE_MPQ As Long = &H1
+Public Const SFILE_TYPE_FILE As Long = &H2
 
 ' SFileListFiles flags
 Public Const SFILE_LIST_MEMORY_LIST  As Long = &H1 ' Specifies that lpFilelists is a file list from memory, rather than being a list of file lists
 Public Const SFILE_LIST_ONLY_KNOWN   As Long = &H2 ' Only list files that the function finds a name for
 Public Const SFILE_LIST_ONLY_UNKNOWN As Long = &H4 ' Only list files that the function does not find a name for
-Public Const SFILE_LIST_FLAG_UNKNOWN As Long = &H8 ' Use without SFILE_LIST_ONLY_KNOWN or SFILE_LIST_FLAG_UNKNOWN to list all files, but set dwFileExists to 3 if file's name is not found
-
-Public Const SFILE_TYPE_MPQ As Long = &H1
-Public Const SFILE_TYPE_FILE As Long = &H2
+Public Const SFILE_LIST_FLAG_UNKNOWN As Long = &H8 ' Use without SFILE_LIST_ONLY_KNOWN or SFILE_LIST_FLAG_UNKNOWN to list all files, but will set dwFileExists to 3 if file's name is not found
 
 Public Const INVALID_HANDLE_VALUE As Long = -1
 
@@ -210,10 +265,12 @@ Public Const FILE_BEGIN   As Long = 0
 Public Const FILE_CURRENT As Long = 1
 Public Const FILE_END     As Long = 2
 
+' SFileOpenArchive flags
 Public Const SFILE_OPEN_HARD_DISK_FILE As Long = &H0 'Open archive without regard to the drive type it resides on
 Public Const SFILE_OPEN_CD_ROM_FILE As Long = &H1 'Open the archive only if it is on a CD-ROM
 Public Const SFILE_OPEN_ALLOW_WRITE As Long = &H8000 'Open file with write access
 
+' SFileOpenFileEx search scopes
 Public Const SFILE_SEARCH_CURRENT_ONLY As Long = &H0 'Used with SFileOpenFileEx; only the archive with the handle specified will be searched for the file
 Public Const SFILE_SEARCH_ALL_OPEN As Long = &H1 'SFileOpenFileEx will look through all open archives for the file
 
@@ -229,6 +286,7 @@ End Type
 ' Storm functions implemented by this library
 Declare Function SFileOpenArchive Lib "SFmpq.dll" (ByVal lpFileName As String, ByVal dwPriority As Long, ByVal dwFlags As Long, ByRef hMPQ As Long) As Boolean
 Declare Function SFileCloseArchive Lib "SFmpq.dll" (ByVal hMPQ As Long) As Boolean
+Declare Function SFileOpenFileAsArchive Lib "SFmpq.dll" (ByVal hSourceMPQ As Long, ByVal lpFileName As String, ByVal dwPriority As Long, ByVal dwFlags As Long, ByRef hMPQ As Long) As Boolean
 Declare Function SFileGetArchiveName Lib "SFmpq.dll" (ByVal hMPQ As Long, ByVal lpBuffer As String, ByVal dwBufferLength As Long) As Boolean
 Declare Function SFileOpenFile Lib "SFmpq.dll" (ByVal lpFileName As String, ByRef hFile As Long) As Boolean
 Declare Function SFileOpenFileEx Lib "SFmpq.dll" (ByVal hMPQ As Long, ByVal lpFileName As String, ByVal dwSearchScope As Long, ByRef hFile As Long) As Boolean
@@ -237,7 +295,7 @@ Declare Function SFileGetFileSize Lib "SFmpq.dll" (ByVal hFile As Long, lpFileSi
 Declare Function SFileGetFileArchive Lib "SFmpq.dll" (ByVal hFile As Long, ByRef hMPQ As Long) As Boolean
 Declare Function SFileGetFileName Lib "SFmpq.dll" (ByVal hMPQ As Long, ByVal lpBuffer As String, ByVal dwBufferLength As Long) As Boolean
 Declare Function SFileSetFilePointer Lib "SFmpq.dll" (ByVal hFile As Long, ByVal lDistanceToMove As Long, lplDistanceToMoveHigh As Long, ByVal dwMoveMethod As Long) As Long
-Declare Function SFileReadFile Lib "SFmpq.dll" (ByVal hFile As Long, lpBuffer As Any, ByVal nNumberOfBytesToRead As Long, lpNumberOfBytesRead As Long, lpOverlapped As Any) As Boolean
+Declare Function SFileReadFile Lib "SFmpq.dll" (ByVal hFile As Long, ByRef lpBuffer As Any, ByVal nNumberOfBytesToRead As Long, lpNumberOfBytesRead As Long, ByRef lpOverlapped As Any) As Boolean
 Declare Function SFileSetLocale Lib "SFmpq.dll" (ByVal nNewLocale As Long) As Long
 Declare Function SFileGetBasePath Lib "SFmpq.dll" (ByVal lpBuffer As String, ByVal dwBufferLength As Long) As Boolean
 Declare Function SFileSetBasePath Lib "SFmpq.dll" (ByVal lpNewBasePath As String) As Boolean
@@ -258,10 +316,13 @@ Declare Function MpqDeleteFile Lib "SFmpq.dll" (ByVal hMPQ As Long, ByVal lpFile
 Declare Function MpqCompactArchive Lib "SFmpq.dll" (ByVal hMPQ As Long) As Boolean
 
 ' Extra archive editing functions
+Declare Function MpqOpenArchiveForUpdateEx Lib "SFmpq.dll" (ByVal lpFileName As String, ByVal dwFlags As Long, ByVal dwMaximumFilesInArchive As Long, ByVal dwBlockSize As Long) As Long
 Declare Function MpqAddFileToArchiveEx Lib "SFmpq.dll" (ByVal hMPQ As Long, ByVal lpSourceFileName As String, ByVal lpDestFileName As String, ByVal dwFlags As Long, ByVal dwCompressionType As Long, ByVal dwCompressLevel As Long) As Boolean
-Declare Function MpqAddFileFromBufferEx Lib "SFmpq.dll" (ByVal hMPQ As Long, lpBuffer As Any, ByVal dwLength As Long, ByVal lpFileName As String, ByVal dwFlags As Long, ByVal dwCompressionType As Long, ByVal dwCompressLevel As Long) As Boolean
-Declare Function MpqAddFileFromBuffer Lib "SFmpq.dll" (ByVal hMPQ As Long, lpBuffer As Any, ByVal dwLength As Long, ByVal lpFileName As String, ByVal dwFlags As Long) As Boolean
-Declare Function MpqAddWaveFromBuffer Lib "SFmpq.dll" (ByVal hMPQ As Long, lpBuffer As Any, ByVal dwLength As Long, ByVal lpFileName As String, ByVal dwFlags As Long, ByVal dwQuality As Long) As Boolean
+Declare Function MpqAddFileFromBufferEx Lib "SFmpq.dll" (ByVal hMPQ As Long, ByRef lpBuffer As Any, ByVal dwLength As Long, ByVal lpFileName As String, ByVal dwFlags As Long, ByVal dwCompressionType As Long, ByVal dwCompressLevel As Long) As Boolean
+Declare Function MpqAddFileFromBuffer Lib "SFmpq.dll" (ByVal hMPQ As Long, ByRef lpBuffer As Any, ByVal dwLength As Long, ByVal lpFileName As String, ByVal dwFlags As Long) As Boolean
+Declare Function MpqAddWaveFromBuffer Lib "SFmpq.dll" (ByVal hMPQ As Long, ByRef lpBuffer As Any, ByVal dwLength As Long, ByVal lpFileName As String, ByVal dwFlags As Long, ByVal dwQuality As Long) As Boolean
+Declare Function MpqRenameAndSetFileLocale Lib "SFmpq.dll" (ByVal hMPQ As Long, ByVal lpcOldFileName As String, ByVal lpcNewFileName As String, ByVal nOldLocale As Long, ByVal nNewLocale As Long) As Boolean
+Declare Function MpqDeleteFileWithLocale Lib "SFmpq.dll" (ByVal hMPQ As Long, ByVal lpFileName As String, ByVal nLocale As Long) As Boolean
 Declare Function MpqSetFileLocale Lib "SFmpq.dll" (ByVal hMPQ As Long, ByVal lpFileName As String, ByVal nOldLocale As Long, ByVal nNewLocale As Long) As Boolean
 
 ' These functions do nothing.  They are only provided for
@@ -276,8 +337,8 @@ Function SFMpqCompareVersion() As Long
     With ExeVersion
         .Major = 1
         .Minor = 0
-        .Revision = 7
-        .Subrevision = 4
+        .Revision = 8
+        .Subrevision = 1
     End With
     DllVersion = SFMpqGetVersion()
     If DllVersion.Major > ExeVersion.Major Then
