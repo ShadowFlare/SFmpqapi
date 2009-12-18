@@ -1073,7 +1073,7 @@ DWORD SFMPQAPI WINAPI SFileGetFileInfo(MPQHANDLE hFile, DWORD dwInfoType)
 			case SFILE_INFO_PRIORITY:
 				return mpqOpenArc->dwPriority;
 			case SFILE_INFO_HASH_INDEX:
-				return ((INT_PTR)mpqOpenFile->lpHashEntry-(INT_PTR)mpqOpenArc->lpHashTable)/sizeof(HASHTABLEENTRY);
+				return ((UIntPtr)mpqOpenFile->lpHashEntry-(UIntPtr)mpqOpenArc->lpHashTable)/sizeof(HASHTABLEENTRY);
 			case SFILE_INFO_BLOCK_INDEX:
 				return mpqOpenFile->lpHashEntry->dwBlockTableIndex;
 			default:

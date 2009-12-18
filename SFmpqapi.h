@@ -295,6 +295,8 @@ long SFMPQAPI __inline SFMpqCompareVersion();
 
 typedef HANDLE MPQHANDLE;
 
+#include <pshpack1.h>
+
 struct FILELISTENTRY {
 	DWORD dwFileExists; // Nonzero if this entry is used
 	LCID lcLocale; // Locale ID of file
@@ -321,6 +323,8 @@ struct MPQHEADER {
 	DWORD dwHashTableSize; // Number of entries in hash table
 	DWORD dwBlockTableSize; // Number of entries in block table
 };
+
+#include <poppack.h>
 
 //Archive handles may be typecasted to this struct so you can access
 //some of the archive's properties and the decrypted hash table and
@@ -379,6 +383,8 @@ struct MPQFILE {
 	LPSTR lpFileName;
 };
 
+#include <pshpack1.h>
+
 struct BLOCKTABLEENTRY {
 	DWORD dwFileOffset; // Offset to file
 	DWORD dwCompressedSize; // Compressed size of file
@@ -392,6 +398,8 @@ struct HASHTABLEENTRY {
 	LCID lcLocale; // Locale ID of file
 	DWORD dwBlockTableIndex; // Index to the block table entry for the file
 };
+
+#include <poppack.h>
 
 // Defines for backward compatibility with old lmpqapi function names
 #define MpqAddFileToArcive MpqAddFileToArchive
