@@ -309,11 +309,27 @@
 			Filter="h;hpp;hxx;hm;inl"
 			>
 			<File
+				RelativePath=".\MpqBlockTable.h"
+				>
+			</File>
+			<File
+				RelativePath=".\MpqCrypt.h"
+				>
+			</File>
+			<File
+				RelativePath=".\MpqHashTable.h"
+				>
+			</File>
+			<File
 				RelativePath="SFmpqapi.h"
 				>
 			</File>
 			<File
 				RelativePath=".\SFTypes.h"
+				>
+			</File>
+			<File
+				RelativePath=".\SFUtil.h"
 				>
 			</File>
 		</Filter>
@@ -1110,6 +1126,18 @@
 			Filter="cpp;c;cxx;rc;def;r;odl;idl;hpj;bat"
 			>
 			<File
+				RelativePath=".\MpqBlockTable.cpp"
+				>
+			</File>
+			<File
+				RelativePath=".\MpqCrypt.cpp"
+				>
+			</File>
+			<File
+				RelativePath=".\MpqHashTable.cpp"
+				>
+			</File>
+			<File
 				RelativePath="SFmpqapi.cpp"
 				>
 				<FileConfiguration
@@ -1202,6 +1230,10 @@
 						AdditionalIncludeDirectories="$(OUTDIR)"
 					/>
 				</FileConfiguration>
+			</File>
+			<File
+				RelativePath=".\SFUtil.cpp"
+				>
 			</File>
 		</Filter>
 	</Files>

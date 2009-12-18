@@ -13,7 +13,11 @@
 
 #include "../SComp/SComp.h"
 
+#include "MpqCrypt.h"
+#include "MpqHashTable.h"
+#include "MpqBlockTable.h"
 #include "SFmpqapi.h"
+#include "SFUtil.h"
 #include "SFTypes.h"
 
 struct SFMPQAPIMODULE {
@@ -88,15 +92,6 @@ LCID availLocales[7] = {0x0000,0x0407,0x0409,0x040A,0x040C,0x0410,0x0416};
 
 #define MAX_MPQ_PATH 260;
 
-#define HASH_POSITION 0
-#define HASH_NAME_A 1
-#define HASH_NAME_B 2
-#define HASH_KEY 3
-
-BOOL bCryptTableInit = FALSE;
-DWORD dwCryptTable[0x500];
-DWORD dwHashTableKey;
-DWORD dwBlockTableKey;
 MPQARCHIVE **lpOpenMpq = 0;
 DWORD dwOpenMpqCount = 0;
 MPQARCHIVE * FirstLastMpq[2] = {0,0};
@@ -117,9 +112,6 @@ funcSCompDecompress stormSCompDecompress = 0;
 void LoadStorm();
 void FreeStorm();
 
-LPVOID WINAPI SFAlloc(DWORD dwSize);
-void WINAPI SFFree(LPVOID lpvMemory);
-void WINAPI SFMemZero(LPVOID lpvDestination, DWORD dwLength);
 BOOL WINAPI MpqOpenArchiveEx(LPCSTR lpFileName, DWORD dwPriority, DWORD dwFlags, MPQHANDLE *hMPQ, DWORD dwFlags2, DWORD dwMaximumFilesInArchive, DWORD dwBlockSize);
 DWORD WINAPI FindMpqHeaderAtLocation(HANDLE hFile, DWORD dwStart, DWORD dwLength);
 DWORD GetFullPath(LPCSTR lpFileName, char *lpBuffer, DWORD dwBufferLength);
@@ -131,13 +123,6 @@ void SortOpenArchivesByPriority();
 DWORD GetHandleType(MPQHANDLE hFile);
 BOOL AddToInternalListing(MPQHANDLE hMPQ, LPCSTR lpFileName);
 BOOL RemoveFromInternalListing(MPQHANDLE hMPQ, LPCSTR lpFileName);
-size_t strlnlen(const char *strline);
-char *nextline(const char *strline);
-BOOL InitCryptTable();
-DWORD HashString(LPCSTR lpszString, DWORD dwHashType);
-BOOL EncryptData(LPBYTE lpbyBuffer, DWORD dwLength, DWORD dwKey);
-BOOL DecryptData(LPBYTE lpbyBuffer, DWORD dwLength, DWORD dwKey);
-static DWORD DetectFileSeed(DWORD * block, DWORD decrypted, DWORD blocksize);
 DWORD DetectFileSeedEx(MPQARCHIVE * mpqOpenArc, HASHTABLEENTRY * lpHashEntry, LPCSTR * lplpFileName);
 
 BOOL APIENTRY DllMain( HINSTANCE hInstDLL, 
@@ -202,70 +187,6 @@ BOOL APIENTRY DllMain( HINSTANCE hInstDLL,
     }
 
     return TRUE;
-}
-
-LPVOID WINAPI SFAlloc(DWORD dwSize)
-{
-	LPVOID lpMemory = malloc(dwSize);
-	if (lpMemory) SFMemZero(lpMemory,dwSize);
-	return lpMemory;
-}
-
-void WINAPI SFFree(LPVOID lpvMemory)
-{
-	if (lpvMemory) free(lpvMemory);
-}
-
-void WINAPI SFMemZero(LPVOID lpvDestination, DWORD dwLength)
-{
-	DWORD dwPrevLen = dwLength;
-	LPDWORD lpdwDestination = (LPDWORD)lpvDestination;
-	LPBYTE lpbyDestination;
-
-	dwLength >>= 2;
-
-	while (dwLength--)
-		*lpdwDestination++ = 0;
-
-	lpbyDestination = (LPBYTE)lpdwDestination;
-
-	dwLength = dwPrevLen;
-	dwLength &= 3;
-
-	while (dwLength--)
-		*lpbyDestination++ = 0;
-}
-
-Int64 SFGetFileSize(HANDLE hFile)
-{
-	IntConv FileSize;
-
-	FileSize.ui64 = 0;
-
-	FileSize.ui32[0] = ::GetFileSize(hFile, &FileSize.ui32[1]);
-
-	if (FileSize.ui32[0] == INVALID_FILE_SIZE) {
-		if (::GetLastError() != NO_ERROR)
-			return -1;
-	}
-
-	return FileSize.i64;
-}
-
-Int64 SFSetFilePointer(HANDLE hFile, Int64 nDistance, UInt32 dwMoveMethod)
-{
-	IntConv FilePos;
-
-	FilePos.i64 = nDistance;
-
-	FilePos.i32[0] = ::SetFilePointer(hFile, FilePos.i32[0], &FilePos.i32[1], dwMoveMethod);
-
-	if (FilePos.i32[0] == INVALID_SET_FILE_POINTER) {
-		if (::GetLastError() != NO_ERROR)
-			return -1;
-	}
-
-	return FilePos.i64;
 }
 
 TempAlloc::TempAlloc()
@@ -2105,34 +2026,8 @@ BOOL SFMPQAPI WINAPI MpqAddFileToArchiveEx(MPQHANDLE hMPQ, LPCSTR lpSourceFileNa
 	SFSetFilePointer(mpqOpenArc->hFile,mpqOpenArc->dwMPQStart+dwFileOffset,FILE_BEGIN);
 	WriteFile(mpqOpenArc->hFile,buffer,fsz,&tsz,0);
 	SFFree(buffer);
-	buffer = (char *)SFAlloc(sizeof(HASHTABLEENTRY) * mpqOpenArc->MpqHeader.dwHashTableSize);
-	if (buffer) {
-		memcpy(buffer,mpqOpenArc->lpHashTable,sizeof(HASHTABLEENTRY) * mpqOpenArc->MpqHeader.dwHashTableSize);
-		EncryptData((LPBYTE)buffer,sizeof(HASHTABLEENTRY) * mpqOpenArc->MpqHeader.dwHashTableSize,dwHashTableKey);
-		SFSetFilePointer(mpqOpenArc->hFile,mpqOpenArc->dwMPQStart+mpqOpenArc->MpqHeader.dwHashTableOffset,FILE_BEGIN);
-		WriteFile(mpqOpenArc->hFile,buffer,sizeof(HASHTABLEENTRY) * mpqOpenArc->MpqHeader.dwHashTableSize,&tsz,0);
-		SFFree(buffer);
-	}
-	else {
-		EncryptData((LPBYTE)mpqOpenArc->lpHashTable,sizeof(HASHTABLEENTRY) * mpqOpenArc->MpqHeader.dwHashTableSize,dwHashTableKey);
-		SFSetFilePointer(mpqOpenArc->hFile,mpqOpenArc->dwMPQStart+mpqOpenArc->MpqHeader.dwHashTableOffset,FILE_BEGIN);
-		WriteFile(mpqOpenArc->hFile,mpqOpenArc->lpHashTable,sizeof(HASHTABLEENTRY) * mpqOpenArc->MpqHeader.dwHashTableSize,&tsz,0);
-		DecryptData((LPBYTE)mpqOpenArc->lpHashTable,sizeof(HASHTABLEENTRY) * mpqOpenArc->MpqHeader.dwHashTableSize,dwHashTableKey);
-	}
-	buffer = (char *)SFAlloc(sizeof(BLOCKTABLEENTRY) * mpqOpenArc->MpqHeader.dwBlockTableSize);
-	if (buffer) {
-		memcpy(buffer,mpqOpenArc->lpBlockTable,sizeof(BLOCKTABLEENTRY) * mpqOpenArc->MpqHeader.dwBlockTableSize);
-		EncryptData((LPBYTE)buffer,sizeof(BLOCKTABLEENTRY) * mpqOpenArc->MpqHeader.dwBlockTableSize,dwBlockTableKey);
-		SFSetFilePointer(mpqOpenArc->hFile,mpqOpenArc->dwMPQStart+mpqOpenArc->MpqHeader.dwBlockTableOffset,FILE_BEGIN);
-		WriteFile(mpqOpenArc->hFile,buffer,sizeof(BLOCKTABLEENTRY) * mpqOpenArc->MpqHeader.dwBlockTableSize,&tsz,0);
-		SFFree(buffer);
-	}
-	else {
-		EncryptData((LPBYTE)mpqOpenArc->lpBlockTable,sizeof(BLOCKTABLEENTRY) * mpqOpenArc->MpqHeader.dwBlockTableSize,dwBlockTableKey);
-		SFSetFilePointer(mpqOpenArc->hFile,mpqOpenArc->dwMPQStart+mpqOpenArc->MpqHeader.dwBlockTableOffset,FILE_BEGIN);
-		WriteFile(mpqOpenArc->hFile,mpqOpenArc->lpBlockTable,sizeof(BLOCKTABLEENTRY) * mpqOpenArc->MpqHeader.dwBlockTableSize,&tsz,0);
-		DecryptData((LPBYTE)mpqOpenArc->lpBlockTable,sizeof(BLOCKTABLEENTRY) * mpqOpenArc->MpqHeader.dwBlockTableSize,dwBlockTableKey);
-	}
+	WriteHashTable(mpqOpenArc);
+	WriteBlockTable(mpqOpenArc);
 	AddToInternalListing(hMPQ,lpDestFileName);
 
 	return TRUE;
@@ -2451,34 +2346,8 @@ BOOL SFMPQAPI WINAPI MpqAddFileFromBufferEx(MPQHANDLE hMPQ, LPVOID lpBuffer, DWO
 	SFSetFilePointer(mpqOpenArc->hFile,mpqOpenArc->dwMPQStart+dwFileOffset,FILE_BEGIN);
 	WriteFile(mpqOpenArc->hFile,buffer,fsz,&tsz,0);
 	SFFree(buffer);
-	buffer = (char *)SFAlloc(sizeof(HASHTABLEENTRY) * mpqOpenArc->MpqHeader.dwHashTableSize);
-	if (buffer!=0) {
-		memcpy(buffer,mpqOpenArc->lpHashTable,sizeof(HASHTABLEENTRY) * mpqOpenArc->MpqHeader.dwHashTableSize);
-		EncryptData((LPBYTE)buffer,sizeof(HASHTABLEENTRY) * mpqOpenArc->MpqHeader.dwHashTableSize,dwHashTableKey);
-		SFSetFilePointer(mpqOpenArc->hFile,mpqOpenArc->dwMPQStart+mpqOpenArc->MpqHeader.dwHashTableOffset,FILE_BEGIN);
-		WriteFile(mpqOpenArc->hFile,buffer,sizeof(HASHTABLEENTRY) * mpqOpenArc->MpqHeader.dwHashTableSize,&tsz,0);
-		SFFree(buffer);
-	}
-	else {
-		EncryptData((LPBYTE)mpqOpenArc->lpHashTable,sizeof(HASHTABLEENTRY) * mpqOpenArc->MpqHeader.dwHashTableSize,dwHashTableKey);
-		SFSetFilePointer(mpqOpenArc->hFile,mpqOpenArc->dwMPQStart+mpqOpenArc->MpqHeader.dwHashTableOffset,FILE_BEGIN);
-		WriteFile(mpqOpenArc->hFile,mpqOpenArc->lpHashTable,sizeof(HASHTABLEENTRY) * mpqOpenArc->MpqHeader.dwHashTableSize,&tsz,0);
-		DecryptData((LPBYTE)mpqOpenArc->lpHashTable,sizeof(HASHTABLEENTRY) * mpqOpenArc->MpqHeader.dwHashTableSize,dwHashTableKey);
-	}
-	buffer = (char *)SFAlloc(sizeof(BLOCKTABLEENTRY) * mpqOpenArc->MpqHeader.dwBlockTableSize);
-	if (buffer!=0) {
-		memcpy(buffer,mpqOpenArc->lpBlockTable,sizeof(BLOCKTABLEENTRY) * mpqOpenArc->MpqHeader.dwBlockTableSize);
-		EncryptData((LPBYTE)buffer,sizeof(BLOCKTABLEENTRY) * mpqOpenArc->MpqHeader.dwBlockTableSize,dwBlockTableKey);
-		SFSetFilePointer(mpqOpenArc->hFile,mpqOpenArc->dwMPQStart+mpqOpenArc->MpqHeader.dwBlockTableOffset,FILE_BEGIN);
-		WriteFile(mpqOpenArc->hFile,buffer,sizeof(BLOCKTABLEENTRY) * mpqOpenArc->MpqHeader.dwBlockTableSize,&tsz,0);
-		SFFree(buffer);
-	}
-	else {
-		EncryptData((LPBYTE)mpqOpenArc->lpBlockTable,sizeof(BLOCKTABLEENTRY) * mpqOpenArc->MpqHeader.dwBlockTableSize,dwBlockTableKey);
-		SFSetFilePointer(mpqOpenArc->hFile,mpqOpenArc->dwMPQStart+mpqOpenArc->MpqHeader.dwBlockTableOffset,FILE_BEGIN);
-		WriteFile(mpqOpenArc->hFile,mpqOpenArc->lpBlockTable,sizeof(BLOCKTABLEENTRY) * mpqOpenArc->MpqHeader.dwBlockTableSize,&tsz,0);
-		DecryptData((LPBYTE)mpqOpenArc->lpBlockTable,sizeof(BLOCKTABLEENTRY) * mpqOpenArc->MpqHeader.dwBlockTableSize,dwBlockTableKey);
-	}
+	WriteHashTable(mpqOpenArc);
+	WriteBlockTable(mpqOpenArc);
 	AddToInternalListing(hMPQ,lpFileName);
 	return TRUE;
 }
@@ -2619,20 +2488,7 @@ BOOL SFMPQAPI WINAPI MpqRenameAndSetFileLocale(MPQHANDLE hMPQ, LPCSTR lpcOldFile
 		oldHashEntry->dwNameHashB = 0xFFFFFFFF;
 		oldHashEntry->lcLocale = 0xFFFFFFFF;
 		oldHashEntry->dwBlockTableIndex = 0xFFFFFFFE;
-		char *buffer = (char *)SFAlloc(sizeof(HASHTABLEENTRY) * mpqOpenArc->MpqHeader.dwHashTableSize);
-		if (buffer!=0) {
-			memcpy(buffer,mpqOpenArc->lpHashTable,sizeof(HASHTABLEENTRY) * mpqOpenArc->MpqHeader.dwHashTableSize);
-			EncryptData((LPBYTE)buffer,sizeof(HASHTABLEENTRY) * mpqOpenArc->MpqHeader.dwHashTableSize,dwHashTableKey);
-			SFSetFilePointer(mpqOpenArc->hFile,mpqOpenArc->dwMPQStart+mpqOpenArc->MpqHeader.dwHashTableOffset,FILE_BEGIN);
-			WriteFile(mpqOpenArc->hFile,buffer,sizeof(HASHTABLEENTRY) * mpqOpenArc->MpqHeader.dwHashTableSize,&tsz,0);
-			SFFree(buffer);
-		}
-		else {
-			EncryptData((LPBYTE)mpqOpenArc->lpHashTable,sizeof(HASHTABLEENTRY) * mpqOpenArc->MpqHeader.dwHashTableSize,dwHashTableKey);
-			SFSetFilePointer(mpqOpenArc->hFile,mpqOpenArc->dwMPQStart+mpqOpenArc->MpqHeader.dwHashTableOffset,FILE_BEGIN);
-			WriteFile(mpqOpenArc->hFile,mpqOpenArc->lpHashTable,sizeof(HASHTABLEENTRY) * mpqOpenArc->MpqHeader.dwHashTableSize,&tsz,0);
-			DecryptData((LPBYTE)mpqOpenArc->lpHashTable,sizeof(HASHTABLEENTRY) * mpqOpenArc->MpqHeader.dwHashTableSize,dwHashTableKey);
-		}
+		WriteHashTable(mpqOpenArc);
 	}
 	LCID dwOldLocale=LocaleID;
 	LocaleID=nOldLocale;
@@ -2672,22 +2528,7 @@ BOOL SFMPQAPI WINAPI MpqDeleteFileWithLocale(MPQHANDLE hMPQ, LPCSTR lpFileName, 
 	hashEntry->dwNameHashB = 0xFFFFFFFF;
 	hashEntry->lcLocale = 0xFFFFFFFF;
 	hashEntry->dwBlockTableIndex = 0xFFFFFFFE;
-	DWORD tsz;
-	char *buffer = (char *)SFAlloc(sizeof(HASHTABLEENTRY) * mpqOpenArc->MpqHeader.dwHashTableSize);
-	if (buffer!=0) {
-		memcpy(buffer,mpqOpenArc->lpHashTable,sizeof(HASHTABLEENTRY) * mpqOpenArc->MpqHeader.dwHashTableSize);
-		EncryptData((LPBYTE)buffer,sizeof(HASHTABLEENTRY) * mpqOpenArc->MpqHeader.dwHashTableSize,dwHashTableKey);
-		SFSetFilePointer(mpqOpenArc->hFile,mpqOpenArc->dwMPQStart+mpqOpenArc->MpqHeader.dwHashTableOffset,FILE_BEGIN);
-
-		WriteFile(mpqOpenArc->hFile,buffer,sizeof(HASHTABLEENTRY) * mpqOpenArc->MpqHeader.dwHashTableSize,&tsz,0);
-		SFFree(buffer);
-	}
-	else {
-		EncryptData((LPBYTE)mpqOpenArc->lpHashTable,sizeof(HASHTABLEENTRY) * mpqOpenArc->MpqHeader.dwHashTableSize,dwHashTableKey);
-		SFSetFilePointer(mpqOpenArc->hFile,mpqOpenArc->dwMPQStart+mpqOpenArc->MpqHeader.dwHashTableOffset,FILE_BEGIN);
-		WriteFile(mpqOpenArc->hFile,mpqOpenArc->lpHashTable,sizeof(HASHTABLEENTRY) * mpqOpenArc->MpqHeader.dwHashTableSize,&tsz,0);
-		DecryptData((LPBYTE)mpqOpenArc->lpHashTable,sizeof(HASHTABLEENTRY) * mpqOpenArc->MpqHeader.dwHashTableSize,dwHashTableKey);
-	}
+	WriteHashTable(mpqOpenArc);
 	LCID dwOldLocale=LocaleID;
 	LocaleID=nLocale;
 	RemoveFromInternalListing(hMPQ,lpFileName);
@@ -3080,16 +2921,8 @@ BOOL SFMPQAPI WINAPI MpqCompactArchive(MPQHANDLE hMPQ)
 	SFFree(buffer);
 	CloseHandle(hFile);
 	DeleteFile(lpFileName);
-	EncryptData((BYTE *)mpqOpenArc->lpHashTable,mpqOpenArc->MpqHeader.dwHashTableSize * sizeof(HASHTABLEENTRY),dwHashTableKey);
-	SFSetFilePointer(mpqOpenArc->hFile,mpqOpenArc->dwMPQStart+mpqOpenArc->MpqHeader.dwHashTableOffset,FILE_BEGIN);
-	WriteFile(mpqOpenArc->hFile,mpqOpenArc->lpHashTable,mpqOpenArc->MpqHeader.dwHashTableSize * sizeof(HASHTABLEENTRY),&tsz,0);
-	DecryptData((BYTE *)mpqOpenArc->lpHashTable,mpqOpenArc->MpqHeader.dwHashTableSize * sizeof(HASHTABLEENTRY),dwHashTableKey);
-	if(mpqOpenArc->lpBlockTable!=0) {
-		EncryptData((BYTE *)mpqOpenArc->lpBlockTable,mpqOpenArc->MpqHeader.dwBlockTableSize * sizeof(BLOCKTABLEENTRY),dwBlockTableKey);
-		SFSetFilePointer(mpqOpenArc->hFile,mpqOpenArc->dwMPQStart+mpqOpenArc->MpqHeader.dwBlockTableOffset,FILE_BEGIN);
-		WriteFile(mpqOpenArc->hFile,mpqOpenArc->lpBlockTable,mpqOpenArc->MpqHeader.dwBlockTableSize * sizeof(BLOCKTABLEENTRY),&tsz,0);
-		DecryptData((BYTE *)mpqOpenArc->lpBlockTable,mpqOpenArc->MpqHeader.dwBlockTableSize * sizeof(BLOCKTABLEENTRY),dwBlockTableKey);
-	}
+	WriteHashTable(mpqOpenArc);
+	WriteBlockTable(mpqOpenArc);
 	return TRUE;
 }
 
@@ -3110,22 +2943,8 @@ BOOL SFMPQAPI WINAPI MpqSetFileLocale(MPQHANDLE hMPQ, LPCSTR lpFileName, LCID nO
 	if (hashEntry==0) return FALSE;
 	if (hashEntry->lcLocale!=nOldLocale) return FALSE;
 	hashEntry->lcLocale = nNewLocale;
-	DWORD tsz;
 
-	char *buffer = (char *)SFAlloc(sizeof(HASHTABLEENTRY) * mpqOpenArc->MpqHeader.dwHashTableSize);
-	if (buffer!=0) {
-		memcpy(buffer,mpqOpenArc->lpHashTable,sizeof(HASHTABLEENTRY) * mpqOpenArc->MpqHeader.dwHashTableSize);
-		EncryptData((LPBYTE)buffer,sizeof(HASHTABLEENTRY) * mpqOpenArc->MpqHeader.dwHashTableSize,dwHashTableKey);
-		SFSetFilePointer(mpqOpenArc->hFile,mpqOpenArc->dwMPQStart+mpqOpenArc->MpqHeader.dwHashTableOffset,FILE_BEGIN);
-		WriteFile(mpqOpenArc->hFile,buffer,sizeof(HASHTABLEENTRY) * mpqOpenArc->MpqHeader.dwHashTableSize,&tsz,0);
-		SFFree(buffer);
-	}
-	else {
-		EncryptData((LPBYTE)mpqOpenArc->lpHashTable,sizeof(HASHTABLEENTRY) * mpqOpenArc->MpqHeader.dwHashTableSize,dwHashTableKey);
-		SFSetFilePointer(mpqOpenArc->hFile,mpqOpenArc->dwMPQStart+mpqOpenArc->MpqHeader.dwHashTableOffset,FILE_BEGIN);
-		WriteFile(mpqOpenArc->hFile,mpqOpenArc->lpHashTable,sizeof(HASHTABLEENTRY) * mpqOpenArc->MpqHeader.dwHashTableSize,&tsz,0);
-		DecryptData((LPBYTE)mpqOpenArc->lpHashTable,sizeof(HASHTABLEENTRY) * mpqOpenArc->MpqHeader.dwHashTableSize,dwHashTableKey);
-	}
+	WriteHashTable(mpqOpenArc);
 	LCID dwOldLocale=LocaleID;
 	LocaleID=nOldLocale;
 	RemoveFromInternalListing(hMPQ,lpFileName);
@@ -3535,195 +3354,6 @@ BOOL RemoveFromInternalListing(MPQHANDLE hMPQ, LPCSTR lpFileName)
 		SFFree(buffer);
 	}
 	return TRUE;
-}
-
-size_t strlnlen(const char *strline)
-{
-	if (strline==0) return 0;
-	const char *strcr = strchr(strline,'\r');
-	const char *strlf = strchr(strline,'\n');
-	if (strcr==0 && strlf==0) return strlen(strline);
-	if (strcr!=0 && (strcr<strlf || strlf==0)) return strcr-strline;
-	if (strlf!=0 && (strlf<strcr || strcr==0)) return strlf-strline;
-	return strlen(strline);
-}
-
-char *nextline(const char *strline)
-{
-	if (strline==0) return 0;
-	const char *strcr = strchr(strline,'\r');
-	const char *strlf = strchr(strline,'\n');
-	if (strcr==0 && strlf==0) return 0;
-	const char *streol;
-	if (strcr!=0 && (strcr<strlf || strlf==0)) streol = strcr;
-	if (strlf!=0 && (strlf<strcr || strcr==0)) streol = strlf;
-	do {
-		streol++;
-	} while (streol[0]=='\r' || streol[0]=='\n');
-	if (streol[0]==0) return 0;
-	return (char *)streol;
-}
-
-// The InitCryptTable, HashString, DecryptData, and DetectFileKey are
-// based on the versions in StormLib which were written by Ladislav 
-// Zezula, but may have been modified somewhat by Quantam or ShadowFlare.
-BOOL InitCryptTable()
-{
-	DWORD seed   = 0x00100001;
-	DWORD index1 = 0;
-	DWORD index2 = 0;
-	int   i;
-		
-	if (!bCryptTableInit)
-	{
-		 for(index1 = 0; index1 < 0x100; index1++)
-		 {
-			  for(index2 = index1, i = 0; i < 5; i++, index2 += 0x100)
-			  {
-					DWORD temp1, temp2;
-		
-					seed  = (seed * 125 + 3) % 0x2AAAAB;
-					temp1 = (seed & 0xFFFF) << 0x10;
-		
-					seed  = (seed * 125 + 3) % 0x2AAAAB;
-					temp2 = (seed & 0xFFFF);
-		
-					dwCryptTable[index2] = (temp1 | temp2);
-			  }
-		 }
-
-		bCryptTableInit = TRUE;
-	}
-
-	return TRUE;
-}
-
-DWORD HashString(LPCSTR lpszString, DWORD dwHashType)
-{
-    DWORD  seed1 = 0x7FED7FED;
-    DWORD  seed2 = 0xEEEEEEEE;
-    int    ch;
-
-	char szNull = 0;
-	if (!lpszString)
-		lpszString = &szNull;
-
-	if (dwHashType==HASH_KEY)
-		while (strchr(lpszString,'\\')!=NULL) lpszString = strchr(lpszString,'\\')+1;
-    while (*lpszString != 0)
-    {
-        ch = toupper(*lpszString++);
-
-        seed1 = dwCryptTable[(dwHashType << 8) + ch] ^ (seed1 + seed2);
-        seed2 = ch + seed1 + seed2 + (seed2 << 5) + 3;
-    }
-
-    return seed1;
-}
-
-// The EncryptData function is based on the DecryptData function by
-// Ladislav Zezula, but adapted by Quantam to encrypt rather than decrypt.
-BOOL EncryptData(LPBYTE lpbyBuffer, DWORD dwLength, DWORD dwKey)
-{
-    LPDWORD lpdwBuffer = (LPDWORD)lpbyBuffer;
-    DWORD seed = 0xEEEEEEEE;
-    DWORD ch;
-
-	if (!lpbyBuffer)
-		return FALSE;
-
-    // Round to DWORDs
-    dwLength >>= 2;
-
-    while(dwLength-- > 0)
-
-    {
-        seed += dwCryptTable[0x400 + (dwKey & 0xFF)];
-        ch = *lpdwBuffer ^ (dwKey + seed);
-
-        dwKey = ((~dwKey << 0x15) + 0x11111111) | (dwKey >> 0x0B);
-        seed = *lpdwBuffer + seed + (seed << 5) + 3;
-
-		*lpdwBuffer++ = ch;
-    }
-
-	 return TRUE;
-}
-
-BOOL DecryptData(LPBYTE lpbyBuffer, DWORD dwLength, DWORD dwKey)
-{
-	LPDWORD lpdwBuffer = (LPDWORD)lpbyBuffer;
-    DWORD seed = 0xEEEEEEEE;
-    DWORD ch;
-
-	if (!lpbyBuffer)
-		return FALSE;
-
-    // Round to DWORDs
-    dwLength >>= 2;
-
-    while(dwLength-- > 0)
-    {
-        seed += dwCryptTable[0x400 + (dwKey & 0xFF)];
-        ch = *lpdwBuffer ^ (dwKey + seed);
-
-        dwKey = ((~dwKey << 0x15) + 0x11111111) | (dwKey >> 0x0B);
-        seed = ch + seed + (seed << 5) + 3;
-
-		*lpdwBuffer++ = ch;
-    }
-
-	 return TRUE;
-}
-
-//-----------------------------------------------------------------------------
-// Functions tries to get file decryption key. The trick comes from block
-// positions which are stored at the begin of each compressed file. We know the
-// file size, that means we know number of blocks that means we know the first
-// DWORD value in block position. And if we know encrypted and decrypted value,
-// we can find the decryption key !!!
-//
-// hf    - MPQ file handle
-// block - DWORD array of block positions
-// ch    - Decrypted value of the first block pos
-
-static DWORD DetectFileSeed(DWORD * block, DWORD decrypted, DWORD blocksize)
-{
-    DWORD saveSeed1;
-    DWORD temp = *block ^ decrypted;    // temp = seed1 + seed2
-                                        // temp = seed1 + stormBuffer[0x400 + (seed1 & 0xFF)] + 0xEEEEEEEE
-    temp -= 0xEEEEEEEE;                 // temp = seed1 + stormBuffer[0x400 + (seed1 & 0xFF)]
-    
-
-    for(int i = 0; i < 0x100; i++)      // Try all 256 possibilities
-    {
-        DWORD seed1;
-        DWORD seed2 = 0xEEEEEEEE;
-        DWORD ch;
-
-        // Try the first DWORD (We exactly know the value)
-        seed1  = temp - dwCryptTable[0x400 + i];
-        seed2 += dwCryptTable[0x400 + (seed1 & 0xFF)];
-        ch     = block[0] ^ (seed1 + seed2);
-
-        if(ch != decrypted)
-            continue;
-
-        saveSeed1 = seed1 + 1;
-
-        // If OK, continue and test the second value. We don't know exactly the value,
-        // but we know that the second one has a value less than or equal to the
-		// size of the block position table plus the block size
-        seed1  = ((~seed1 << 0x15) + 0x11111111) | (seed1 >> 0x0B);
-        seed2  = ch + seed2 + (seed2 << 5) + 3;
-
-        seed2 += dwCryptTable[0x400 + (seed1 & 0xFF)];
-        ch     = block[1] ^ (seed1 + seed2);
-
-        if(ch <= decrypted + blocksize)
-            return saveSeed1;
-    }
-    return 0;
 }
 
 DWORD DetectFileSeedEx(MPQARCHIVE * mpqOpenArc, HASHTABLEENTRY * lpHashEntry, LPCSTR * lplpFileName)

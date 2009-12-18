@@ -1,3 +1,5 @@
+// License information for this code is in license.txt
+
 #ifndef SFTYPES_INCLUDED
 #define SFTYPES_INCLUDED
 

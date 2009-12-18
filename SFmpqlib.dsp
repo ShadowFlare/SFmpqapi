@@ -87,11 +87,27 @@ LIB32=link.exe -lib
 # PROP Default_Filter "cpp;c;cxx;rc;def;r;odl;idl;hpj;bat"
 # Begin Source File
 
+SOURCE=.\MpqBlockTable.cpp
+# End Source File
+# Begin Source File
+
+SOURCE=.\MpqCrypt.cpp
+# End Source File
+# Begin Source File
+
+SOURCE=.\MpqHashTable.cpp
+# End Source File
+# Begin Source File
+
 SOURCE=.\SFmpq_static.cpp
 # End Source File
 # Begin Source File
 
 SOURCE=.\SFmpqapi.cpp
+# End Source File
+# Begin Source File
+
+SOURCE=.\SFUtil.cpp
 # End Source File
 # End Group
 # Begin Group "Header Files"
@@ -99,11 +115,31 @@ SOURCE=.\SFmpqapi.cpp
 # PROP Default_Filter "h;hpp;hxx;hm;inl"
 # Begin Source File
 
+SOURCE=.\MpqBlockTable.h
+# End Source File
+# Begin Source File
+
+SOURCE=.\MpqCrypt.h
+# End Source File
+# Begin Source File
+
+SOURCE=.\MpqHashTable.h
+# End Source File
+# Begin Source File
+
 SOURCE=.\SFmpq_static.h
 # End Source File
 # Begin Source File
 
 SOURCE=.\SFmpqapi.h
+# End Source File
+# Begin Source File
+
+SOURCE=.\SFTypes.h
+# End Source File
+# Begin Source File
+
+SOURCE=.\SFUtil.h
 # End Source File
 # End Group
 # Begin Group "SComp"
