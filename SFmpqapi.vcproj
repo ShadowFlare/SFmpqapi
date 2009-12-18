@@ -312,6 +312,10 @@
 				RelativePath="SFmpqapi.h"
 				>
 			</File>
+			<File
+				RelativePath=".\SFTypes.h"
+				>
+			</File>
 		</Filter>
 		<Filter
 			Name="Resource Files"
