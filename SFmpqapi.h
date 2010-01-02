@@ -309,6 +309,7 @@ struct FILELISTENTRY {
 struct MPQARCHIVE;
 struct MPQFILE;
 struct MPQHEADER;
+struct MPQHEADER_EX;
 struct BLOCKTABLEENTRY;
 struct HASHTABLEENTRY;
 
@@ -316,12 +317,19 @@ struct MPQHEADER {
 	DWORD dwMPQID; //"MPQ\x1A" for mpq's, "BN3\x1A" for bncache.dat
 	DWORD dwHeaderSize; // Size of this header
 	DWORD dwMPQSize; //The size of the mpq archive
-	WORD wUnused0C; // Seems to always be 0
+	WORD wVersion; // 0 for original format, 1 for large archive
 	WORD wBlockSize; // Size of blocks in files equals 512 << wBlockSize
 	DWORD dwHashTableOffset; // Offset to hash table
 	DWORD dwBlockTableOffset; // Offset to block table
 	DWORD dwHashTableSize; // Number of entries in hash table
 	DWORD dwBlockTableSize; // Number of entries in block table
+};
+
+// Large archive format only
+struct MPQHEADER_EX {
+	UINT64 qwExtendedBlockOffsetTable; // Offset to table containing upper 16 bits of block offsets
+	WORD wHashTableOffsetHigh; // High 16 bits of the hash table offset for large archives
+	WORD wBlockTableOffsetHigh; // High 16 bits of the block table offset for large archives
 };
 
 #include <poppack.h>
@@ -355,6 +363,8 @@ struct MPQARCHIVE {
 	DWORD dwFlags; //The only flags that should be changed are MOAU_MAINTAIN_LISTFILE and MOAU_MAINTAIN_ATTRIBUTES, changing any others can have unpredictable effects
 	LPSTR lpFileName;
 	DWORD dwExtraFlags;
+	MPQHEADER_EX MpqHeader_Ex;
+	WORD * lpFileOffsetsHigh;
 };
 
 //Handles to files in the archive may be typecasted to this struct
@@ -381,6 +391,7 @@ struct MPQFILE {
 	// Extra struct members used by SFmpq
 	HASHTABLEENTRY *lpHashEntry;
 	LPSTR lpFileName;
+	WORD wFileOffsetHigh;
 };
 
 #include <pshpack1.h>

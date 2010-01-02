@@ -375,7 +375,7 @@ BOOL WINAPI MpqOpenArchiveEx(LPCSTR lpFileName, DWORD dwPriority, DWORD dwFlags,
 			}
 			memcpy(&mpqOpenArc->MpqHeader.dwMPQID,ID_MPQ,4);
 			mpqOpenArc->MpqHeader.dwHeaderSize = sizeof(MPQHEADER);
-			mpqOpenArc->MpqHeader.wUnused0C = 0;
+			mpqOpenArc->MpqHeader.wVersion = 0;
 			if (dwBlockSize & 0xFFFF0000)
 				mpqOpenArc->MpqHeader.wBlockSize = DEFAULT_BLOCK_SIZE;
 			else
