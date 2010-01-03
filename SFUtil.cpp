@@ -36,7 +36,7 @@ void WINAPI SFFree(LPVOID lpvMemory)
 	if (lpvMemory) free(lpvMemory);
 }
 
-Int64 SFGetFileSize(HANDLE hFile)
+UInt64 SFGetFileSize(HANDLE hFile)
 {
 	IntConv FileSize;
 
@@ -46,26 +46,26 @@ Int64 SFGetFileSize(HANDLE hFile)
 
 	if (FileSize.ui32[0] == INVALID_FILE_SIZE) {
 		if (::GetLastError() != NO_ERROR)
-			return -1;
+			return (UInt64)-1;
 	}
 
-	return FileSize.i64;
+	return FileSize.ui64;
 }
 
-Int64 SFSetFilePointer(HANDLE hFile, Int64 nDistance, UInt32 dwMoveMethod)
+UInt64 SFSetFilePointer(HANDLE hFile, Int64 nDistance, UInt32 dwMoveMethod)
 {
 	IntConv FilePos;
 
 	FilePos.i64 = nDistance;
 
-	FilePos.i32[0] = ::SetFilePointer(hFile, FilePos.i32[0], &FilePos.i32[1], dwMoveMethod);
+	FilePos.ui32[0] = ::SetFilePointer(hFile, FilePos.i32[0], &FilePos.i32[1], dwMoveMethod);
 
-	if (FilePos.i32[0] == INVALID_SET_FILE_POINTER) {
+	if (FilePos.ui32[0] == INVALID_SET_FILE_POINTER) {
 		if (::GetLastError() != NO_ERROR)
-			return -1;
+			return (UInt64)-1;
 	}
 
-	return FilePos.i64;
+	return FilePos.ui64;
 }
 
 size_t strlnlen(const char *strline)

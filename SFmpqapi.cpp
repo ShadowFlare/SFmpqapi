@@ -13,6 +13,7 @@
 
 #include "../SComp/SComp.h"
 
+#include "SFmpqInternal.h"
 #include "MpqCrypt.h"
 #include "MpqHashTable.h"
 #include "MpqBlockTable.h"
@@ -53,6 +54,7 @@ SFMPQLIBMODULE::~SFMPQLIBMODULE()
 #endif
 
 LCID LocaleID = 0;
+WORD wCreationVersion = 0;
 BOOL SFMpqInit = FALSE;
 HINSTANCE hStorm = 0;
 #ifdef _USRDLL
@@ -113,7 +115,7 @@ void LoadStorm();
 void FreeStorm();
 
 BOOL WINAPI MpqOpenArchiveEx(LPCSTR lpFileName, DWORD dwPriority, DWORD dwFlags, MPQHANDLE *hMPQ, DWORD dwFlags2, DWORD dwMaximumFilesInArchive, DWORD dwBlockSize);
-DWORD WINAPI FindMpqHeaderAtLocation(HANDLE hFile, DWORD dwStart, DWORD dwLength);
+UInt64 WINAPI SFileFindMpqHeaderEx(HANDLE hFile, UInt64 qwStart = 0, UInt64 qwLength = 0);
 DWORD GetFullPath(LPCSTR lpFileName, char *lpBuffer, DWORD dwBufferLength);
 MPQHANDLE GetHashTableEntry(MPQHANDLE hMPQ, LPCSTR lpFileName, LCID FileLocale);
 MPQHANDLE GetHashTableEntryOfHash(MPQHANDLE hMPQ, DWORD dwTablePos, DWORD dwNameHashA, DWORD dwNameHashB, LCID FileLocale);
@@ -289,7 +291,8 @@ void SFMPQAPI WINAPI AboutSFMpq()
 
 BOOL WINAPI MpqOpenArchiveEx(LPCSTR lpFileName, DWORD dwPriority, DWORD dwFlags, MPQHANDLE *hMPQ, DWORD dwFlags2, DWORD dwMaximumFilesInArchive, DWORD dwBlockSize)
 {
-	DWORD flen,tsz;
+	UInt64 flen;
+	DWORD tsz;
 
 	if (!lpFileName || !hMPQ) {
 		SetLastError(ERROR_INVALID_PARAMETER);
@@ -361,11 +364,11 @@ BOOL WINAPI MpqOpenArchiveEx(LPCSTR lpFileName, DWORD dwPriority, DWORD dwFlags,
 			*hMPQ = 0;
 			return FALSE;
 		}
-		DWORD dwMpqStart;
+		UInt64 qwMpqStart;
 		MPQARCHIVE *mpqOpenArc;
 		if (SFGetFileSize(hFile)==0 && !(dwFlags2 & MOAU_READ_ONLY))
 		{
-			dwMpqStart = 0;
+			qwMpqStart = 0;
 			mpqOpenArc = (MPQARCHIVE *)SFAlloc(sizeof(MPQARCHIVE));
 			if (!mpqOpenArc) {
 				SFFree(lpnOpenMpq);
@@ -375,7 +378,13 @@ BOOL WINAPI MpqOpenArchiveEx(LPCSTR lpFileName, DWORD dwPriority, DWORD dwFlags,
 			}
 			memcpy(&mpqOpenArc->MpqHeader.dwMPQID,ID_MPQ,4);
 			mpqOpenArc->MpqHeader.dwHeaderSize = sizeof(MPQHEADER);
-			mpqOpenArc->MpqHeader.wVersion = 0;
+			mpqOpenArc->MpqHeader.wVersion = wCreationVersion;
+
+			if (mpqOpenArc->MpqHeader.wVersion == 0)
+				mpqOpenArc->MpqHeader.dwHeaderSize = sizeof(MPQHEADER);
+			else
+				mpqOpenArc->MpqHeader.dwHeaderSize = sizeof(MPQHEADER) + sizeof(MPQHEADER_EX);
+
 			if (dwBlockSize & 0xFFFF0000)
 				mpqOpenArc->MpqHeader.wBlockSize = DEFAULT_BLOCK_SIZE;
 			else
@@ -387,6 +396,9 @@ BOOL WINAPI MpqOpenArchiveEx(LPCSTR lpFileName, DWORD dwPriority, DWORD dwFlags,
 			mpqOpenArc->MpqHeader.dwBlockTableSize = 0;
 			mpqOpenArc->MpqHeader.dwHashTableOffset = mpqOpenArc->MpqHeader.dwHeaderSize;
 			mpqOpenArc->MpqHeader.dwBlockTableOffset = mpqOpenArc->MpqHeader.dwHeaderSize + mpqOpenArc->MpqHeader.dwHashTableSize * sizeof(HASHTABLEENTRY);
+			mpqOpenArc->MpqHeader_Ex.qwExtendedBlockOffsetTable = 0;
+			mpqOpenArc->MpqHeader_Ex.wHashTableOffsetHigh = 0;
+			mpqOpenArc->MpqHeader_Ex.wBlockTableOffsetHigh = 0;
 			mpqOpenArc->MpqHeader.dwMPQSize = mpqOpenArc->MpqHeader.dwHeaderSize + mpqOpenArc->MpqHeader.dwHashTableSize * sizeof(HASHTABLEENTRY);
 			if(WriteFile(hFile,&mpqOpenArc->MpqHeader,mpqOpenArc->MpqHeader.dwHeaderSize,&tsz,0)==0) {
 				SFFree(lpnOpenMpq);
@@ -417,8 +429,8 @@ BOOL WINAPI MpqOpenArchiveEx(LPCSTR lpFileName, DWORD dwPriority, DWORD dwFlags,
 		}
 		else
 		{
-			dwMpqStart = SFileFindMpqHeader(hFile);
-			if (dwMpqStart==0xFFFFFFFF) {
+			qwMpqStart = SFileFindMpqHeaderEx(hFile);
+			if (qwMpqStart == (UInt64)-1) {
 				SFFree(lpnOpenMpq);
 				CloseHandle(hFile);
 				SetLastError(MPQ_ERROR_MPQ_INVALID);
@@ -433,7 +445,7 @@ BOOL WINAPI MpqOpenArchiveEx(LPCSTR lpFileName, DWORD dwPriority, DWORD dwFlags,
 				*hMPQ = 0;
 				return FALSE;
 			}
-			SFSetFilePointer(hFile,dwMpqStart,FILE_BEGIN);
+			SFSetFilePointer(hFile, qwMpqStart, FILE_BEGIN);
 			if(ReadFile(hFile,&mpqOpenArc->MpqHeader,sizeof(MPQHEADER),&tsz,0)==0) {
 				SFFree(lpnOpenMpq);
 				SFFree(mpqOpenArc);
@@ -441,6 +453,16 @@ BOOL WINAPI MpqOpenArchiveEx(LPCSTR lpFileName, DWORD dwPriority, DWORD dwFlags,
 				*hMPQ = 0;
 				return FALSE;
 			}
+
+			if (mpqOpenArc->MpqHeader.wVersion > 0) {
+				ReadFile(hFile, &mpqOpenArc->MpqHeader_Ex, sizeof(MPQHEADER_EX), &tsz, 0);
+				mpqOpenArc->dwHeaderSize = sizeof(MPQHEADER) + sizeof(MPQHEADER_EX);
+			}
+			else {
+				memset(&mpqOpenArc->MpqHeader_Ex, 0, sizeof(MPQHEADER_EX));
+				mpqOpenArc->dwHeaderSize = sizeof(MPQHEADER);
+			}
+
 			mpqOpenArc->lpHashTable = (HASHTABLEENTRY *)SFAlloc(sizeof(HASHTABLEENTRY) * mpqOpenArc->MpqHeader.dwHashTableSize);
 			if(!mpqOpenArc->lpHashTable) {
 				SFFree(lpnOpenMpq);
@@ -450,7 +472,8 @@ BOOL WINAPI MpqOpenArchiveEx(LPCSTR lpFileName, DWORD dwPriority, DWORD dwFlags,
 				return FALSE;
 			}
 			if (mpqOpenArc->MpqHeader.dwBlockTableSize!=0) {
-				mpqOpenArc->lpBlockTable = (BLOCKTABLEENTRY *)SFAlloc(sizeof(BLOCKTABLEENTRY) * mpqOpenArc->MpqHeader.dwBlockTableSize);
+				mpqOpenArc->lpBlockTable = (BLOCKTABLEENTRY *)SFAlloc((sizeof(BLOCKTABLEENTRY) + sizeof(UInt16)) * mpqOpenArc->MpqHeader.dwBlockTableSize);
+				mpqOpenArc->lpFileOffsetsHigh = (UInt16 *)(mpqOpenArc->lpBlockTable + mpqOpenArc->MpqHeader.dwBlockTableSize);
 				if(!mpqOpenArc->lpBlockTable) {
 					SFFree(mpqOpenArc->lpHashTable);
 					SFFree(lpnOpenMpq);
@@ -460,7 +483,7 @@ BOOL WINAPI MpqOpenArchiveEx(LPCSTR lpFileName, DWORD dwPriority, DWORD dwFlags,
 					return FALSE;
 				}
 			}
-			SFSetFilePointer(hFile,dwMpqStart+mpqOpenArc->MpqHeader.dwHashTableOffset,FILE_BEGIN);
+			SFSetFilePointer(hFile, qwMpqStart + mpqOpenArc->MpqHeader.dwHashTableOffset + ((UINT64)mpqOpenArc->MpqHeader_Ex.wHashTableOffsetHigh << 32), FILE_BEGIN);
 			if(ReadFile(hFile,mpqOpenArc->lpHashTable,sizeof(HASHTABLEENTRY) * mpqOpenArc->MpqHeader.dwHashTableSize,&tsz,0)==0) {
 				if(mpqOpenArc->lpBlockTable) SFFree(mpqOpenArc->lpBlockTable);
 				SFFree(mpqOpenArc->lpHashTable);
@@ -471,7 +494,7 @@ BOOL WINAPI MpqOpenArchiveEx(LPCSTR lpFileName, DWORD dwPriority, DWORD dwFlags,
 				return FALSE;
 			}
 			if (mpqOpenArc->MpqHeader.dwBlockTableSize!=0) {
-				SFSetFilePointer(hFile,dwMpqStart+mpqOpenArc->MpqHeader.dwBlockTableOffset,FILE_BEGIN);
+				SFSetFilePointer(hFile, qwMpqStart + mpqOpenArc->MpqHeader.dwBlockTableOffset + ((UINT64)mpqOpenArc->MpqHeader_Ex.wBlockTableOffsetHigh << 32), FILE_BEGIN);
 				if(ReadFile(hFile,mpqOpenArc->lpBlockTable,sizeof(BLOCKTABLEENTRY) * mpqOpenArc->MpqHeader.dwBlockTableSize,&tsz,0)==0) {
 					SFFree(mpqOpenArc->lpBlockTable);
 					SFFree(mpqOpenArc->lpHashTable);
@@ -480,6 +503,11 @@ BOOL WINAPI MpqOpenArchiveEx(LPCSTR lpFileName, DWORD dwPriority, DWORD dwFlags,
 					CloseHandle(hFile);
 					*hMPQ = 0;
 					return FALSE;
+				}
+
+				if (mpqOpenArc->MpqHeader_Ex.qwExtendedBlockOffsetTable) {
+					SFSetFilePointer(hFile, qwMpqStart + mpqOpenArc->MpqHeader_Ex.qwExtendedBlockOffsetTable, FILE_BEGIN);
+					ReadFile(hFile, mpqOpenArc->lpFileOffsetsHigh, sizeof(WORD) * mpqOpenArc->MpqHeader.dwBlockTableSize, &tsz, 0);
 				}
 			}
 		}
@@ -513,9 +541,9 @@ BOOL WINAPI MpqOpenArchiveEx(LPCSTR lpFileName, DWORD dwPriority, DWORD dwFlags,
 		mpqOpenArc->dwBlockSize = 512 << mpqOpenArc->MpqHeader.wBlockSize;
 		mpqOpenArc->lpLastReadBlock = 0;
 		mpqOpenArc->dwBufferSize = 0;
-		mpqOpenArc->dwMPQStart = dwMpqStart;
+		mpqOpenArc->qwMPQStart = qwMpqStart;
 		mpqOpenArc->lpMPQHeader = &mpqOpenArc->MpqHeader;
-		mpqOpenArc->dwReadOffset = flen;
+		mpqOpenArc->qwReadOffset = flen;
 		mpqOpenArc->dwRefCount = 1;
 		mpqOpenArc->dwFlags = dwFlags2;
 		mpqOpenArc->dwExtraFlags = 0;
@@ -565,12 +593,12 @@ BOOL SFMPQAPI WINAPI SFileOpenFileAsArchive(MPQHANDLE hSourceMPQ, LPCSTR lpFileN
 			*hMPQ = 0;
 			return FALSE;
 		}
-		DWORD dwMpqStart;
+		UInt64 qwMpqStart;
 		MPQARCHIVE *mpqOpenArc;
-		dwMpqStart = mpqArcFile.lpBlockEntry->dwFileOffset;
+		qwMpqStart = mpqArcFile.lpParentArc->qwMPQStart + mpqArcFile.lpBlockEntry->dwFileOffset + ((UInt64)mpqArcFile.wFileOffsetHigh << 32);
 		flen = mpqArcFile.lpBlockEntry->dwFullSize;
-		dwMpqStart = FindMpqHeaderAtLocation(hFile,dwMpqStart,flen);
-		if (dwMpqStart==0xFFFFFFFF) {
+		qwMpqStart = SFileFindMpqHeaderEx(hFile, qwMpqStart, flen);
+		if (qwMpqStart == (UInt64)-1) {
 			SFFree(lpnOpenMpq);
 			SetLastError(MPQ_ERROR_MPQ_INVALID);
 			*hMPQ = 0;
@@ -582,7 +610,7 @@ BOOL SFMPQAPI WINAPI SFileOpenFileAsArchive(MPQHANDLE hSourceMPQ, LPCSTR lpFileN
 			*hMPQ = 0;
 			return FALSE;
 		}
-		SFSetFilePointer(hFile,dwMpqStart,FILE_BEGIN);
+		SFSetFilePointer(hFile, qwMpqStart, FILE_BEGIN);
 		if(ReadFile(hFile,&mpqOpenArc->MpqHeader,sizeof(MPQHEADER),&tsz,0)==0) {
 			SFFree(lpnOpenMpq);
 			SFFree(mpqOpenArc);
@@ -606,7 +634,7 @@ BOOL SFMPQAPI WINAPI SFileOpenFileAsArchive(MPQHANDLE hSourceMPQ, LPCSTR lpFileN
 				return FALSE;
 			}
 		}
-		SFSetFilePointer(hFile,dwMpqStart+mpqOpenArc->MpqHeader.dwHashTableOffset,FILE_BEGIN);
+		SFSetFilePointer(hFile, qwMpqStart + mpqOpenArc->MpqHeader.dwHashTableOffset + ((UINT64)mpqOpenArc->MpqHeader_Ex.wHashTableOffsetHigh << 32), FILE_BEGIN);
 		if(ReadFile(hFile,mpqOpenArc->lpHashTable,sizeof(HASHTABLEENTRY) * mpqOpenArc->MpqHeader.dwHashTableSize,&tsz,0)==0) {
 			if(mpqOpenArc->lpBlockTable) SFFree(mpqOpenArc->lpBlockTable);
 			SFFree(mpqOpenArc->lpHashTable);
@@ -616,7 +644,7 @@ BOOL SFMPQAPI WINAPI SFileOpenFileAsArchive(MPQHANDLE hSourceMPQ, LPCSTR lpFileN
 			return FALSE;
 		}
 		if (mpqOpenArc->MpqHeader.dwBlockTableSize!=0) {
-			SFSetFilePointer(hFile,dwMpqStart+mpqOpenArc->MpqHeader.dwBlockTableOffset,FILE_BEGIN);
+			SFSetFilePointer(hFile, qwMpqStart + mpqOpenArc->MpqHeader.dwBlockTableOffset + ((UINT64)mpqOpenArc->MpqHeader_Ex.wBlockTableOffsetHigh << 32), FILE_BEGIN);
 			if(ReadFile(hFile,mpqOpenArc->lpBlockTable,sizeof(BLOCKTABLEENTRY) * mpqOpenArc->MpqHeader.dwBlockTableSize,&tsz,0)==0) {
 				SFFree(mpqOpenArc->lpBlockTable);
 				SFFree(mpqOpenArc->lpHashTable);
@@ -655,9 +683,9 @@ BOOL SFMPQAPI WINAPI SFileOpenFileAsArchive(MPQHANDLE hSourceMPQ, LPCSTR lpFileN
 		mpqOpenArc->dwBlockSize = 512 << mpqOpenArc->MpqHeader.wBlockSize;
 		mpqOpenArc->lpLastReadBlock = 0;
 		mpqOpenArc->dwBufferSize = 0;
-		mpqOpenArc->dwMPQStart = dwMpqStart;
+		mpqOpenArc->qwMPQStart = qwMpqStart;
 		mpqOpenArc->lpMPQHeader = &mpqOpenArc->MpqHeader;
-		mpqOpenArc->dwReadOffset = flen;
+		mpqOpenArc->qwReadOffset = flen;
 		mpqOpenArc->dwRefCount = 1;
 		mpqOpenArc->dwFlags = dwFlags;
 		mpqOpenArc->dwExtraFlags = 1;
@@ -1228,7 +1256,7 @@ BOOL SFMPQAPI WINAPI SFileReadFile(MPQHANDLE hFile,LPVOID lpBuffer,DWORD nNumber
 	DWORD HeaderLength=0;
 	if (memcmp(&mpqOpenArc->MpqHeader.dwMPQID,ID_BN3,4)==0)
 	{
-		SFSetFilePointer(mpqOpenArc->hFile,mpqOpenArc->dwMPQStart+mpqOpenArc->lpBlockTable[BlockIndex].dwFileOffset,FILE_BEGIN);
+		SFSetFilePointer(mpqOpenArc->hFile, mpqOpenArc->qwMPQStart + mpqOpenArc->lpBlockTable[BlockIndex].dwFileOffset + ((UInt64)mpqOpenFile->wFileOffsetHigh << 32), FILE_BEGIN);
 		ReadFile(mpqOpenArc->hFile,&HeaderLength,4,&nBytesRead,0);
 	}
 	DWORD i;
@@ -1245,7 +1273,7 @@ BOOL SFMPQAPI WINAPI SFileReadFile(MPQHANDLE hFile,LPVOID lpBuffer,DWORD nNumber
 		}
 		if ((mpqOpenArc->lpBlockTable[BlockIndex].dwFlags & MAFA_COMPRESS) || (mpqOpenArc->lpBlockTable[BlockIndex].dwFlags & MAFA_COMPRESS2))
 		{
-			SFSetFilePointer(mpqOpenArc->hFile,mpqOpenArc->dwMPQStart+mpqOpenArc->lpBlockTable[BlockIndex].dwFileOffset+HeaderLength,FILE_BEGIN);
+			SFSetFilePointer(mpqOpenArc->hFile, mpqOpenArc->qwMPQStart + mpqOpenArc->lpBlockTable[BlockIndex].dwFileOffset + ((UInt64)mpqOpenFile->wFileOffsetHigh << 32) + HeaderLength, FILE_BEGIN);
 			ReadFile(mpqOpenArc->hFile,dwBlockPtrTable,(TotalBlocks+1)*4,&nBytesRead,0);
 			if (mpqOpenArc->lpBlockTable[BlockIndex].dwFlags & MAFA_ENCRYPT) {
 				DecryptData((LPBYTE)dwBlockPtrTable,(TotalBlocks+1)*4,dwCryptKey-1);
@@ -1271,7 +1299,7 @@ BOOL SFMPQAPI WINAPI SFileReadFile(MPQHANDLE hFile,LPVOID lpBuffer,DWORD nNumber
 	DWORD blk=0,blki=0;
 	for (i=blockNum;i<nBlocks;i++) {
 		if (blk==0) {
-			SFSetFilePointer(mpqOpenArc->hFile,mpqOpenArc->dwMPQStart+mpqOpenArc->lpBlockTable[BlockIndex].dwFileOffset+HeaderLength+mpqOpenFile->lpdwBlockOffsets[i],FILE_BEGIN);
+			SFSetFilePointer(mpqOpenArc->hFile, mpqOpenArc->qwMPQStart + mpqOpenArc->lpBlockTable[BlockIndex].dwFileOffset + ((UInt64)mpqOpenFile->wFileOffsetHigh << 32) + HeaderLength + mpqOpenFile->lpdwBlockOffsets[i], FILE_BEGIN);
 			blki=i;
 			if (i+16>nBlocks) {
 				if (ReadFile(mpqOpenArc->hFile,blk16Buffer,mpqOpenFile->lpdwBlockOffsets[nBlocks]-mpqOpenFile->lpdwBlockOffsets[i],&nBytesRead,0)==0) {
@@ -1483,7 +1511,7 @@ BOOL SFMPQAPI WINAPI SFileListFiles(MPQHANDLE hMPQ, LPCSTR lpFileLists, FILELIST
 					lpListBuffer[i].dwFileExists = 1;
 				else
 					lpListBuffer[i].dwFileExists=0xFFFFFFFF;
-				SFSetFilePointer(mpqOpenArc->hFile,mpqOpenArc->dwMPQStart+mpqOpenArc->lpBlockTable[dwBlockIndex].dwFileOffset+0x40,FILE_BEGIN);
+				SFSetFilePointer(mpqOpenArc->hFile, mpqOpenArc->qwMPQStart + mpqOpenArc->lpBlockTable[dwBlockIndex].dwFileOffset + ((UInt64)mpqOpenArc->lpFileOffsetsHigh[dwBlockIndex] << 32) + 0x40, FILE_BEGIN);
 				ReadFile(mpqOpenArc->hFile,lpListBuffer[i].szFileName,260,&tsz,0);
 
 				if (mpqOpenArc->lpHashTable[i].dwNameHashA==HashString(lpListBuffer[i].szFileName,HASH_NAME_A) && mpqOpenArc->lpHashTable[i].dwNameHashB==HashString(lpListBuffer[i].szFileName,HASH_NAME_B)) {
@@ -2002,8 +2030,8 @@ BOOL SFMPQAPI WINAPI MpqAddFileToArchiveEx(MPQHANDLE hMPQ, LPCSTR lpSourceFileNa
 	mpqOpenArc->lpBlockTable[BlockIndex].dwFullSize = ucfsz;
 	mpqOpenArc->lpBlockTable[BlockIndex].dwFlags = dwFlags|MAFA_EXISTS;
 	DWORD dwFileOffset = mpqOpenArc->lpBlockTable[BlockIndex].dwFileOffset;
-	SFSetFilePointer(mpqOpenArc->hFile,mpqOpenArc->dwMPQStart,FILE_BEGIN);
-	WriteFile(mpqOpenArc->hFile,&mpqOpenArc->MpqHeader,sizeof(MPQHEADER),&tsz,0);
+	SFSetFilePointer(mpqOpenArc->hFile, mpqOpenArc->qwMPQStart, FILE_BEGIN);
+	WriteFile(mpqOpenArc->hFile,&mpqOpenArc->MpqHeader,mpqOpenArc->dwHeaderSize,&tsz,0);
 	if (dwFlags & MAFA_ENCRYPT) {
 		DWORD dwCryptKey;
 		if (dwFlags&MAFA_ENCRYPT) dwCryptKey = HashString(lpDestFileName,HASH_KEY);
@@ -2023,7 +2051,7 @@ BOOL SFMPQAPI WINAPI MpqAddFileToArchiveEx(MPQHANDLE hMPQ, LPCSTR lpSourceFileNa
 		}
 	}
 	SFFree(dwBlkpt);
-	SFSetFilePointer(mpqOpenArc->hFile,mpqOpenArc->dwMPQStart+dwFileOffset,FILE_BEGIN);
+	SFSetFilePointer(mpqOpenArc->hFile, mpqOpenArc->qwMPQStart + dwFileOffset, FILE_BEGIN);
 	WriteFile(mpqOpenArc->hFile,buffer,fsz,&tsz,0);
 	SFFree(buffer);
 	WriteHashTable(mpqOpenArc);
@@ -2321,8 +2349,8 @@ BOOL SFMPQAPI WINAPI MpqAddFileFromBufferEx(MPQHANDLE hMPQ, LPVOID lpBuffer, DWO
 	mpqOpenArc->lpBlockTable[BlockIndex].dwFullSize = ucfsz;
 	mpqOpenArc->lpBlockTable[BlockIndex].dwFlags = dwFlags|MAFA_EXISTS;
 	DWORD dwFileOffset = mpqOpenArc->lpBlockTable[BlockIndex].dwFileOffset;
-	SFSetFilePointer(mpqOpenArc->hFile,mpqOpenArc->dwMPQStart,FILE_BEGIN);
-	WriteFile(mpqOpenArc->hFile,&mpqOpenArc->MpqHeader,sizeof(MPQHEADER),&tsz,0);
+	SFSetFilePointer(mpqOpenArc->hFile, mpqOpenArc->qwMPQStart, FILE_BEGIN);
+	WriteFile(mpqOpenArc->hFile,&mpqOpenArc->MpqHeader,mpqOpenArc->dwHeaderSize,&tsz,0);
 	if (dwFlags & MAFA_ENCRYPT) {
 		DWORD dwCryptKey;
 		if (dwFlags&MAFA_ENCRYPT) dwCryptKey = HashString(lpFileName,HASH_KEY);
@@ -2343,7 +2371,7 @@ BOOL SFMPQAPI WINAPI MpqAddFileFromBufferEx(MPQHANDLE hMPQ, LPVOID lpBuffer, DWO
 		}
 	}
 	SFFree(dwBlkpt);
-	SFSetFilePointer(mpqOpenArc->hFile,mpqOpenArc->dwMPQStart+dwFileOffset,FILE_BEGIN);
+	SFSetFilePointer(mpqOpenArc->hFile, mpqOpenArc->qwMPQStart + dwFileOffset, FILE_BEGIN);
 	WriteFile(mpqOpenArc->hFile,buffer,fsz,&tsz,0);
 	SFFree(buffer);
 	WriteHashTable(mpqOpenArc);
@@ -2420,7 +2448,7 @@ BOOL SFMPQAPI WINAPI MpqRenameAndSetFileLocale(MPQHANDLE hMPQ, LPCSTR lpcOldFile
 			DWORD HeaderLength=0;
 			if (memcmp(&mpqOpenArc->MpqHeader.dwMPQID,ID_BN3,4)==0)
 			{
-				SFSetFilePointer(mpqOpenArc->hFile,mpqOpenArc->dwMPQStart+mpqOpenArc->lpBlockTable[BlockIndex].dwFileOffset,FILE_BEGIN);
+				SFSetFilePointer(mpqOpenArc->hFile, mpqOpenArc->qwMPQStart + mpqOpenArc->lpBlockTable[BlockIndex].dwFileOffset + ((UInt64)mpqOpenArc->lpFileOffsetsHigh[BlockIndex] << 32), FILE_BEGIN);
 				ReadFile(mpqOpenArc->hFile,&HeaderLength,4,&tsz,0);
 
 			}
@@ -2435,7 +2463,7 @@ BOOL SFMPQAPI WINAPI MpqRenameAndSetFileLocale(MPQHANDLE hMPQ, LPCSTR lpcOldFile
 			DWORD i;
 			if ((mpqOpenArc->lpBlockTable[BlockIndex].dwFlags & MAFA_COMPRESS)==MAFA_COMPRESS || (mpqOpenArc->lpBlockTable[BlockIndex].dwFlags & MAFA_COMPRESS2)==MAFA_COMPRESS2)
 			{
-				SFSetFilePointer(mpqOpenArc->hFile,mpqOpenArc->dwMPQStart+mpqOpenArc->lpBlockTable[BlockIndex].dwFileOffset+HeaderLength,FILE_BEGIN);
+				SFSetFilePointer(mpqOpenArc->hFile, mpqOpenArc->qwMPQStart + mpqOpenArc->lpBlockTable[BlockIndex].dwFileOffset + ((UInt64)mpqOpenArc->lpFileOffsetsHigh[BlockIndex] << 32) + HeaderLength, FILE_BEGIN);
 				ReadFile(mpqOpenArc->hFile,dwBlockPtrTable,(TotalBlocks+1)*4,&tsz,0);
 				DecryptData((LPBYTE)dwBlockPtrTable,(TotalBlocks+1)*4,dwOldCryptKey-1);
 				char *EncryptedTable = (char *)SFAlloc((TotalBlocks+1)*4);
@@ -2445,7 +2473,7 @@ BOOL SFMPQAPI WINAPI MpqRenameAndSetFileLocale(MPQHANDLE hMPQ, LPCSTR lpcOldFile
 				}
 				memcpy(EncryptedTable,dwBlockPtrTable,(TotalBlocks+1)*4);
 				EncryptData((LPBYTE)EncryptedTable,(TotalBlocks+1)*4,dwNewCryptKey-1);
-				SFSetFilePointer(mpqOpenArc->hFile,mpqOpenArc->dwMPQStart+mpqOpenArc->lpBlockTable[BlockIndex].dwFileOffset+HeaderLength,FILE_BEGIN);
+				SFSetFilePointer(mpqOpenArc->hFile, mpqOpenArc->qwMPQStart + mpqOpenArc->lpBlockTable[BlockIndex].dwFileOffset + ((UInt64)mpqOpenArc->lpFileOffsetsHigh[BlockIndex] << 32) + HeaderLength, FILE_BEGIN);
 				WriteFile(mpqOpenArc->hFile,EncryptedTable,(TotalBlocks+1)*4,&tsz,0);
 				SFFree(EncryptedTable);
 			}
@@ -2459,16 +2487,16 @@ BOOL SFMPQAPI WINAPI MpqRenameAndSetFileLocale(MPQHANDLE hMPQ, LPCSTR lpcOldFile
 			char *blkBuffer = (char *)SFAlloc(blockSize);
 			if (blkBuffer==0) {
 				EncryptData((LPBYTE)dwBlockPtrTable,(TotalBlocks+1)*4,dwOldCryptKey-1);
-				SFSetFilePointer(mpqOpenArc->hFile,mpqOpenArc->dwMPQStart+mpqOpenArc->lpBlockTable[BlockIndex].dwFileOffset+HeaderLength,FILE_BEGIN);
+				SFSetFilePointer(mpqOpenArc->hFile, mpqOpenArc->qwMPQStart + mpqOpenArc->lpBlockTable[BlockIndex].dwFileOffset + ((UInt64)mpqOpenArc->lpFileOffsetsHigh[BlockIndex] << 32) + HeaderLength, FILE_BEGIN);
 				WriteFile(mpqOpenArc->hFile,dwBlockPtrTable,(TotalBlocks+1)*4,&tsz,0);
 				SFFree(dwBlockPtrTable);
 				return FALSE;
 			}
 			for (i=0;i<TotalBlocks;i++) {
-				SFSetFilePointer(mpqOpenArc->hFile,mpqOpenArc->dwMPQStart+mpqOpenArc->lpBlockTable[BlockIndex].dwFileOffset+HeaderLength+dwBlockPtrTable[i],FILE_BEGIN);
+				SFSetFilePointer(mpqOpenArc->hFile, mpqOpenArc->qwMPQStart + mpqOpenArc->lpBlockTable[BlockIndex].dwFileOffset + ((UInt64)mpqOpenArc->lpFileOffsetsHigh[BlockIndex] << 32) + HeaderLength + dwBlockPtrTable[i], FILE_BEGIN);
 				if (ReadFile(mpqOpenArc->hFile,blkBuffer,dwBlockPtrTable[i+1]-dwBlockPtrTable[i],&tsz,0)==0) {
 					EncryptData((LPBYTE)dwBlockPtrTable,(TotalBlocks+1)*4,dwOldCryptKey-1);
-					SFSetFilePointer(mpqOpenArc->hFile,mpqOpenArc->dwMPQStart+mpqOpenArc->lpBlockTable[BlockIndex].dwFileOffset+HeaderLength,FILE_BEGIN);
+					SFSetFilePointer(mpqOpenArc->hFile, mpqOpenArc->qwMPQStart + mpqOpenArc->lpBlockTable[BlockIndex].dwFileOffset + ((UInt64)mpqOpenArc->lpFileOffsetsHigh[BlockIndex] << 32) + HeaderLength, FILE_BEGIN);
 					WriteFile(mpqOpenArc->hFile,dwBlockPtrTable,(TotalBlocks+1)*4,&tsz,0);
 					SFFree(dwBlockPtrTable);
 					SFFree(blkBuffer);
@@ -2476,7 +2504,7 @@ BOOL SFMPQAPI WINAPI MpqRenameAndSetFileLocale(MPQHANDLE hMPQ, LPCSTR lpcOldFile
 				}
 				DecryptData((LPBYTE)blkBuffer,dwBlockPtrTable[i+1]-dwBlockPtrTable[i],dwOldCryptKey+i);
 				EncryptData((LPBYTE)blkBuffer,dwBlockPtrTable[i+1]-dwBlockPtrTable[i],dwNewCryptKey+i);
-				SFSetFilePointer(mpqOpenArc->hFile,mpqOpenArc->dwMPQStart+mpqOpenArc->lpBlockTable[BlockIndex].dwFileOffset+HeaderLength+dwBlockPtrTable[i],FILE_BEGIN);
+				SFSetFilePointer(mpqOpenArc->hFile, mpqOpenArc->qwMPQStart + mpqOpenArc->lpBlockTable[BlockIndex].dwFileOffset + ((UInt64)mpqOpenArc->lpFileOffsetsHigh[BlockIndex] << 32) + HeaderLength + dwBlockPtrTable[i], FILE_BEGIN);
 				WriteFile(mpqOpenArc->hFile,blkBuffer,dwBlockPtrTable[i+1]-dwBlockPtrTable[i],&tsz,0);
 			}
 			SFFree(dwBlockPtrTable);
@@ -2552,7 +2580,7 @@ BOOL SFMPQAPI WINAPI MpqCompactArchive(MPQHANDLE hMPQ)
 	char *lpFileName = (char *)NewAlloc.Alloc(strlen(mpqOpenArc->lpFileName)+13);
 	sprintf(lpFileName,"%s.compact",mpqOpenArc->lpFileName);
 	HANDLE hFile = CreateFile(lpFileName,GENERIC_READ|GENERIC_WRITE,0,0,CREATE_NEW,0,0);
-	DWORD i;
+	UInt64 i;
 	if (hFile==INVALID_HANDLE_VALUE) {
 		for (i=0;i<10000;i++) {
 			sprintf(lpFileName,"%s.compact.%04ld",mpqOpenArc->lpFileName,i);
@@ -2562,7 +2590,8 @@ BOOL SFMPQAPI WINAPI MpqCompactArchive(MPQHANDLE hMPQ)
 		}
 		if (i==10000) return FALSE;
 	}
-	DWORD dwLastOffset = sizeof(MPQHEADER),tsz;
+	UInt64 qwLastOffset = mpqOpenArc->dwHeaderSize;
+	DWORD tsz;
 	char *buffer = (char *)SFAlloc(65536);
 	if (buffer==0) {
 		CloseHandle(hFile);
@@ -2576,7 +2605,8 @@ BOOL SFMPQAPI WINAPI MpqCompactArchive(MPQHANDLE hMPQ)
 		DeleteFile(lpFileName);
 		return FALSE;
 	}
-	BLOCKTABLEENTRY *lpBlockTable = (BLOCKTABLEENTRY *)SFAlloc(sizeof(BLOCKTABLEENTRY) * mpqOpenArc->MpqHeader.dwBlockTableSize);
+	BLOCKTABLEENTRY *lpBlockTable = (BLOCKTABLEENTRY *)SFAlloc((sizeof(BLOCKTABLEENTRY) + sizeof(UInt16)) * mpqOpenArc->MpqHeader.dwBlockTableSize);
+	UInt16 *lpdwFileOffsetsHigh = (UInt16 *)(lpBlockTable + mpqOpenArc->MpqHeader.dwBlockTableSize);
 	if(mpqOpenArc->lpBlockTable!=0) {
 		if (lpBlockTable==0) {
 			SFFree(lpHashTable);
@@ -2595,15 +2625,15 @@ BOOL SFMPQAPI WINAPI MpqCompactArchive(MPQHANDLE hMPQ)
 		}
 		if (j<mpqOpenArc->MpqHeader.dwHashTableSize) {
 			memcpy(&lpBlockTable[i-nBlkOffset],&mpqOpenArc->lpBlockTable[i],sizeof(BLOCKTABLEENTRY));
-			lpBlockTable[i-nBlkOffset].dwFileOffset = dwLastOffset;
-			dwLastOffset += mpqOpenArc->lpBlockTable[i].dwCompressedSize;
+			SplitUInt64(lpBlockTable[i-nBlkOffset].dwFileOffset, lpdwFileOffsetsHigh[i-nBlkOffset], qwLastOffset);
+			qwLastOffset += mpqOpenArc->lpBlockTable[i].dwCompressedSize;
 			DWORD dwWritten=FALSE;
 			if (mpqOpenArc->lpBlockTable[i].dwFlags&MAFA_ENCRYPT && mpqOpenArc->lpBlockTable[i].dwFlags&MAFA_MODCRYPTKEY && (mpqOpenArc->lpBlockTable[i].dwFlags&MAFA_COMPRESS || mpqOpenArc->lpBlockTable[i].dwFlags&MAFA_COMPRESS2))
 			{
 				DWORD HeaderLength=0;
 				if (memcmp(&mpqOpenArc->MpqHeader.dwMPQID,ID_BN3,4)==0)
 				{
-					SFSetFilePointer(mpqOpenArc->hFile,mpqOpenArc->dwMPQStart+mpqOpenArc->lpBlockTable[i].dwFileOffset,FILE_BEGIN);
+					SFSetFilePointer(mpqOpenArc->hFile, mpqOpenArc->qwMPQStart + mpqOpenArc->lpBlockTable[i].dwFileOffset + ((UInt64)mpqOpenArc->lpFileOffsetsHigh[i] << 32), FILE_BEGIN);
 					ReadFile(mpqOpenArc->hFile,&HeaderLength,4,&tsz,0);
 				}
 				DWORD blockSize = 512 << mpqOpenArc->MpqHeader.wBlockSize;
@@ -2619,7 +2649,7 @@ BOOL SFMPQAPI WINAPI MpqCompactArchive(MPQHANDLE hMPQ)
 					DeleteFile(lpFileName);
 					return FALSE;
 				}
-				SFSetFilePointer(mpqOpenArc->hFile,mpqOpenArc->dwMPQStart+mpqOpenArc->lpBlockTable[i].dwFileOffset+HeaderLength,FILE_BEGIN);
+				SFSetFilePointer(mpqOpenArc->hFile, mpqOpenArc->qwMPQStart + mpqOpenArc->lpBlockTable[i].dwFileOffset + ((UInt64)mpqOpenArc->lpFileOffsetsHigh[i] << 32) + HeaderLength, FILE_BEGIN);
 				ReadFile(mpqOpenArc->hFile,dwBlockPtrTable,(TotalBlocks+1)*4,&tsz,0);
 				DWORD dwOldCryptKey = DetectFileSeed(dwBlockPtrTable,(TotalBlocks+1)*4,blockSize);
 				DWORD dwNewCryptKey = (dwOldCryptKey ^ mpqOpenArc->lpBlockTable[i].dwFullSize) - mpqOpenArc->lpBlockTable[i].dwFileOffset;
@@ -2719,7 +2749,7 @@ BOOL SFMPQAPI WINAPI MpqCompactArchive(MPQHANDLE hMPQ)
 						return FALSE;
 					}
 					for (DWORD k=0;k<TotalBlocks;k++) {
-						SFSetFilePointer(mpqOpenArc->hFile,mpqOpenArc->dwMPQStart+mpqOpenArc->lpBlockTable[i].dwFileOffset+HeaderLength+dwBlockPtrTable[k],FILE_BEGIN);
+						SFSetFilePointer(mpqOpenArc->hFile, mpqOpenArc->qwMPQStart + mpqOpenArc->lpBlockTable[i].dwFileOffset + ((UInt64)mpqOpenArc->lpFileOffsetsHigh[i] << 32) + HeaderLength + dwBlockPtrTable[k], FILE_BEGIN);
 						if (ReadFile(mpqOpenArc->hFile,blkBuffer,dwBlockPtrTable[k+1]-dwBlockPtrTable[k],&tsz,0)==0) {
 							SFFree(dwBlockPtrTable);
 							SFFree(blkBuffer);
@@ -2746,7 +2776,7 @@ BOOL SFMPQAPI WINAPI MpqCompactArchive(MPQHANDLE hMPQ)
 				if (memcmp(&mpqOpenArc->MpqHeader.dwMPQID,ID_BN3,4)==0)
 
 				{
-					SFSetFilePointer(mpqOpenArc->hFile,mpqOpenArc->dwMPQStart+mpqOpenArc->lpBlockTable[i].dwFileOffset,FILE_BEGIN);
+					SFSetFilePointer(mpqOpenArc->hFile, mpqOpenArc->qwMPQStart + mpqOpenArc->lpBlockTable[i].dwFileOffset + ((UInt64)mpqOpenArc->lpFileOffsetsHigh[i] << 32), FILE_BEGIN);
 					ReadFile(mpqOpenArc->hFile,&HeaderLength,4,&tsz,0);
 				}
 				DWORD blockSize = 512 << mpqOpenArc->MpqHeader.wBlockSize;
@@ -2831,7 +2861,7 @@ BOOL SFMPQAPI WINAPI MpqCompactArchive(MPQHANDLE hMPQ)
 						return FALSE;
 					}
 					for (DWORD k=0;k<mpqOpenArc->lpBlockTable[i].dwFullSize;k+=blockSize) {
-						SFSetFilePointer(mpqOpenArc->hFile,mpqOpenArc->dwMPQStart+mpqOpenArc->lpBlockTable[i].dwFileOffset+HeaderLength+k,FILE_BEGIN);
+						SFSetFilePointer(mpqOpenArc->hFile, mpqOpenArc->qwMPQStart + mpqOpenArc->lpBlockTable[i].dwFileOffset + ((UInt64)mpqOpenArc->lpFileOffsetsHigh[i] << 32) + HeaderLength + k, FILE_BEGIN);
 						if (k+blockSize>mpqOpenArc->lpBlockTable[i].dwFullSize) blockSize = mpqOpenArc->lpBlockTable[i].dwFullSize % blockSize;
 						if (ReadFile(mpqOpenArc->hFile,blkBuffer,blockSize,&tsz,0)==0) {
 							SFFree(blkBuffer);
@@ -2855,7 +2885,7 @@ BOOL SFMPQAPI WINAPI MpqCompactArchive(MPQHANDLE hMPQ)
 			if (dwWritten==FALSE) {
 				ReadSize = 65536;
 				for (j=0;j<mpqOpenArc->lpBlockTable[i].dwCompressedSize;j+=65536) {
-					SFSetFilePointer(mpqOpenArc->hFile,mpqOpenArc->dwMPQStart+mpqOpenArc->lpBlockTable[i].dwFileOffset+j,FILE_BEGIN);
+					SFSetFilePointer(mpqOpenArc->hFile, mpqOpenArc->qwMPQStart + mpqOpenArc->lpBlockTable[i].dwFileOffset + ((UInt64)mpqOpenArc->lpFileOffsetsHigh[i] << 32) + j, FILE_BEGIN);
 					SFSetFilePointer(hFile,lpBlockTable[i-nBlkOffset].dwFileOffset+j,FILE_BEGIN);
 					if (j+65536>mpqOpenArc->lpBlockTable[i].dwCompressedSize) ReadSize = mpqOpenArc->lpBlockTable[i].dwCompressedSize-j;
 					if (ReadFile(mpqOpenArc->hFile,buffer,ReadSize,&tsz,0)==0) {
@@ -2886,11 +2916,11 @@ BOOL SFMPQAPI WINAPI MpqCompactArchive(MPQHANDLE hMPQ)
 		}
 	}
 	mpqOpenArc->MpqHeader.dwBlockTableSize -= nBlkOffset;
-	mpqOpenArc->MpqHeader.dwHashTableOffset = dwLastOffset;
-	dwLastOffset += mpqOpenArc->MpqHeader.dwHashTableSize * sizeof(HASHTABLEENTRY);
-	mpqOpenArc->MpqHeader.dwBlockTableOffset = dwLastOffset;
-	dwLastOffset += mpqOpenArc->MpqHeader.dwBlockTableSize * sizeof(BLOCKTABLEENTRY);
-	mpqOpenArc->MpqHeader.dwMPQSize = dwLastOffset;
+	SplitUInt64(mpqOpenArc->MpqHeader.dwHashTableOffset, mpqOpenArc->MpqHeader_Ex.wHashTableOffsetHigh, qwLastOffset);
+	qwLastOffset += mpqOpenArc->MpqHeader.dwHashTableSize * sizeof(HASHTABLEENTRY);
+	SplitUInt64(mpqOpenArc->MpqHeader.dwBlockTableOffset, mpqOpenArc->MpqHeader_Ex.wBlockTableOffsetHigh, qwLastOffset);
+	qwLastOffset += mpqOpenArc->MpqHeader.dwBlockTableSize * sizeof(BLOCKTABLEENTRY);
+	mpqOpenArc->MpqHeader.dwMPQSize = (UInt32)qwLastOffset;
 	SFFree(mpqOpenArc->lpHashTable);
 	mpqOpenArc->lpHashTable = lpHashTable;
 	if(mpqOpenArc->lpBlockTable!=0) {
@@ -2904,17 +2934,17 @@ BOOL SFMPQAPI WINAPI MpqCompactArchive(MPQHANDLE hMPQ)
 			SFFree(lpBlockTable);
 		}
 	}
-	SFSetFilePointer(mpqOpenArc->hFile,mpqOpenArc->dwMPQStart+dwLastOffset,FILE_BEGIN);
+	SFSetFilePointer(mpqOpenArc->hFile, mpqOpenArc->qwMPQStart + qwLastOffset, FILE_BEGIN);
 	SetEndOfFile(mpqOpenArc->hFile);
-	SFSetFilePointer(mpqOpenArc->hFile,mpqOpenArc->dwMPQStart,FILE_BEGIN);
-	mpqOpenArc->MpqHeader.dwHeaderSize = sizeof(MPQHEADER);
-	WriteFile(mpqOpenArc->hFile,&mpqOpenArc->MpqHeader,sizeof(MPQHEADER),&tsz,0);
-	dwLastOffset = sizeof(MPQHEADER);
+	SFSetFilePointer(mpqOpenArc->hFile,mpqOpenArc->qwMPQStart,FILE_BEGIN);
+	mpqOpenArc->MpqHeader.dwHeaderSize = mpqOpenArc->dwHeaderSize;
+	WriteFile(mpqOpenArc->hFile,&mpqOpenArc->MpqHeader,mpqOpenArc->dwHeaderSize,&tsz,0);
+	qwLastOffset = mpqOpenArc->dwHeaderSize;
 	ReadSize = 65536;
-	for (i=dwLastOffset;i<mpqOpenArc->MpqHeader.dwHashTableOffset;i+=65536) {
-		SFSetFilePointer(mpqOpenArc->hFile,mpqOpenArc->dwMPQStart+i,FILE_BEGIN);
+	for (i=qwLastOffset;i<MakeUInt64(mpqOpenArc->MpqHeader.dwHashTableOffset, mpqOpenArc->MpqHeader_Ex.wHashTableOffsetHigh);i+=65536) {
+		SFSetFilePointer(mpqOpenArc->hFile,mpqOpenArc->qwMPQStart+i,FILE_BEGIN);
 		SFSetFilePointer(hFile,i,FILE_BEGIN);
-		if (i+65536>mpqOpenArc->MpqHeader.dwHashTableOffset) ReadSize = mpqOpenArc->MpqHeader.dwHashTableOffset-i;
+		if (i+65536>MakeUInt64(mpqOpenArc->MpqHeader.dwHashTableOffset, mpqOpenArc->MpqHeader_Ex.wHashTableOffsetHigh)) ReadSize = MakeUInt64(mpqOpenArc->MpqHeader.dwHashTableOffset, mpqOpenArc->MpqHeader_Ex.wHashTableOffsetHigh)-i;
 		ReadFile(hFile,buffer,ReadSize,&tsz,0);
 		WriteFile(mpqOpenArc->hFile,buffer,ReadSize,&tsz,0);
 	}
@@ -2983,20 +3013,23 @@ DWORD SFMPQAPI WINAPI SFileFindMpqHeader(HANDLE hFile)
 	return 0xFFFFFFFF;
 }
 
-DWORD WINAPI FindMpqHeaderAtLocation(HANDLE hFile, DWORD dwStart, DWORD dwLength)
+UInt64 WINAPI SFileFindMpqHeaderEx(HANDLE hFile, UInt64 qwStart, UInt64 qwLength)
 {
 	if (hFile == INVALID_HANDLE_VALUE) {
 		SetLastError(ERROR_INVALID_PARAMETER);
-		return 0xFFFFFFFF;
+		return (UInt64)-1;
 	}
+	UInt64 FileLen = SFGetFileSize(hFile);
+	if (FileLen == (UInt64)-1 || qwStart >= FileLen || qwStart + qwLength > FileLen) return (UInt64)-1;
+	if (qwLength == 0) qwLength = FileLen - qwStart;
 	char pbuf[sizeof(MPQHEADER)];
 	DWORD tsz;
-	for (DWORD i=dwStart;i<dwStart+dwLength;i+=512)
+	for (UInt64 i=qwStart;i<qwStart+qwLength && i<FileLen;i+=512)
 	{
 		SFSetFilePointer(hFile,i,FILE_BEGIN);
-		if (ReadFile(hFile,pbuf,sizeof(MPQHEADER),&tsz,0)==0) return 0xFFFFFFFF;
-		if (i+tsz>dwStart+dwLength) tsz = (dwStart+dwLength)-i;
-		if (tsz<sizeof(MPQHEADER)) return 0xFFFFFFFF;
+		if (ReadFile(hFile,pbuf,sizeof(MPQHEADER),&tsz,0)==0) return (UInt64)-1;
+		if (i+tsz>qwStart+qwLength) tsz = (qwStart+qwLength)-i;
+		if (tsz<sizeof(MPQHEADER)) return (UInt64)-1;
 		if (memcmp(pbuf,ID_MPQ,4)==0 || memcmp(pbuf,ID_BN3,4)==0)
 		{
 			// Storm no longer does this, so mpq api shouldn't either
@@ -3008,7 +3041,7 @@ DWORD WINAPI FindMpqHeaderAtLocation(HANDLE hFile, DWORD dwStart, DWORD dwLength
 			return i;
 		}
 	}
-	return 0xFFFFFFFF;
+	return (UInt64)-1;
 }
 
 DWORD GetFullPath(LPCSTR lpFileName, char *lpBuffer, DWORD dwBufferLength)
@@ -3442,7 +3475,7 @@ DWORD DetectFileSeedEx(MPQARCHIVE * mpqOpenArc, HASHTABLEENTRY * lpHashEntry, LP
 			DWORD HeaderLength=0,tsz;
 			if (memcmp(&mpqOpenArc->MpqHeader.dwMPQID,ID_BN3,4)==0)
 			{
-				SFSetFilePointer(mpqOpenArc->hFile,mpqOpenArc->dwMPQStart+mpqOpenArc->lpBlockTable[dwBlockIndex].dwFileOffset,FILE_BEGIN);
+				SFSetFilePointer(mpqOpenArc->hFile, mpqOpenArc->qwMPQStart + mpqOpenArc->lpBlockTable[dwBlockIndex].dwFileOffset + ((UInt64)mpqOpenArc->lpFileOffsetsHigh[dwBlockIndex] << 32), FILE_BEGIN);
 				ReadFile(mpqOpenArc->hFile,&HeaderLength,4,&tsz,0);
 			}
 			DWORD blockSize = 512 << mpqOpenArc->MpqHeader.wBlockSize;
@@ -3452,7 +3485,7 @@ DWORD DetectFileSeedEx(MPQARCHIVE * mpqOpenArc, HASHTABLEENTRY * lpHashEntry, LP
 			DWORD *dwBlockPtrTable = (DWORD *)SFAlloc((TotalBlocks+1)*4);
 			if (dwBlockPtrTable==0)
 				return 0;
-			SFSetFilePointer(mpqOpenArc->hFile,mpqOpenArc->dwMPQStart+mpqOpenArc->lpBlockTable[dwBlockIndex].dwFileOffset+HeaderLength,FILE_BEGIN);
+			SFSetFilePointer(mpqOpenArc->hFile, mpqOpenArc->qwMPQStart + mpqOpenArc->lpBlockTable[dwBlockIndex].dwFileOffset + ((UInt64)mpqOpenArc->lpFileOffsetsHigh[dwBlockIndex] << 32) + HeaderLength, FILE_BEGIN);
 			ReadFile(mpqOpenArc->hFile,dwBlockPtrTable,(TotalBlocks+1)*4,&tsz,0);
 			dwCryptKey = DetectFileSeed(dwBlockPtrTable,(TotalBlocks+1)*4,blockSize);
 

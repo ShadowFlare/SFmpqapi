@@ -325,6 +325,10 @@
 				>
 			</File>
 			<File
+				RelativePath=".\SFmpqInternal.h"
+				>
+			</File>
+			<File
 				RelativePath=".\SFTypes.h"
 				>
 			</File>

@@ -2,6 +2,7 @@
 
 #include <windows.h>
 #include "SFmpqapi.h"
+#include "SFmpqInternal.h"
 #include "SFUtil.h"
 #include "MpqCrypt.h"
 
@@ -16,13 +17,13 @@ BOOL WriteBlockTable(MPQARCHIVE *mpqOpenArc)
 	if (buffer) {
 		memcpy(buffer,mpqOpenArc->lpBlockTable,sizeof(BLOCKTABLEENTRY) * mpqOpenArc->MpqHeader.dwBlockTableSize);
 		EncryptData((LPBYTE)buffer,sizeof(BLOCKTABLEENTRY) * mpqOpenArc->MpqHeader.dwBlockTableSize,dwBlockTableKey);
-		SFSetFilePointer(mpqOpenArc->hFile,mpqOpenArc->dwMPQStart+mpqOpenArc->MpqHeader.dwBlockTableOffset,FILE_BEGIN);
+		SFSetFilePointer(mpqOpenArc->hFile, mpqOpenArc->qwMPQStart + mpqOpenArc->MpqHeader.dwBlockTableOffset + ((UINT64)mpqOpenArc->MpqHeader_Ex.wBlockTableOffsetHigh << 32), FILE_BEGIN);
 		WriteFile(mpqOpenArc->hFile,buffer,sizeof(BLOCKTABLEENTRY) * mpqOpenArc->MpqHeader.dwBlockTableSize,&tsz,0);
 		SFFree(buffer);
 	}
 	else {
 		EncryptData((LPBYTE)mpqOpenArc->lpBlockTable,sizeof(BLOCKTABLEENTRY) * mpqOpenArc->MpqHeader.dwBlockTableSize,dwBlockTableKey);
-		SFSetFilePointer(mpqOpenArc->hFile,mpqOpenArc->dwMPQStart+mpqOpenArc->MpqHeader.dwBlockTableOffset,FILE_BEGIN);
+		SFSetFilePointer(mpqOpenArc->hFile, mpqOpenArc->qwMPQStart + mpqOpenArc->MpqHeader.dwBlockTableOffset + ((UINT64)mpqOpenArc->MpqHeader_Ex.wBlockTableOffsetHigh << 32), FILE_BEGIN);
 		WriteFile(mpqOpenArc->hFile,mpqOpenArc->lpBlockTable,sizeof(BLOCKTABLEENTRY) * mpqOpenArc->MpqHeader.dwBlockTableSize,&tsz,0);
 		DecryptData((LPBYTE)mpqOpenArc->lpBlockTable,sizeof(BLOCKTABLEENTRY) * mpqOpenArc->MpqHeader.dwBlockTableSize,dwBlockTableKey);
 	}

@@ -56,5 +56,11 @@ union IntConv {
 	UInt64 ui64;
 };
 
+#define SplitUInt64(L_Low, L_High, R) \
+	L_Low = (UInt32)(R); \
+	L_High = (UInt32)((R) >> 32);
+
+#define MakeUInt64(R_Low, R_High) ((UInt64)(R_Low) + (UInt64)((R_High) << 32))
+
 #endif // #ifndef SFTYPES_INCLUDED
 
