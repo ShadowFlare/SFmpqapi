@@ -230,6 +230,7 @@ long SFMPQAPI __inline SFMpqCompareVersion();
 // MpqAddFileToArchive flags
 #define MAFA_EXISTS           0x80000000 //This flag will be added if not present
 #define MAFA_UNKNOWN40000000  0x40000000 //Unknown flag
+#define MAFA_SINGLEBLOCK      0x01000000 //File is stored as a single unit rather than being split by the block size
 #define MAFA_MODCRYPTKEY      0x00020000 //Used with MAFA_ENCRYPT. Uses an encryption key based on file position and size
 #define MAFA_ENCRYPT          0x00010000 //Encrypts the file. The file is still accessible when using this, so the use of this has depreciated
 #define MAFA_COMPRESS         0x00000200 //File is to be compressed when added. This is used for most of the compression methods
