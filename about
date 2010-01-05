@@ -1,6 +1,6 @@
 <html>
 <title>About ShadowFlare MPQ API Library</title>
-<pre>  ShadowFlare MPQ API Library v1.08 (c) ShadowFlare Software 2002-2009
+<pre>  ShadowFlare MPQ API Library v1.08 (c) ShadowFlare Software 2002-2010
 
   This library emulates the interface of Lmpqapi and Storm MPQ
   functions, so it may be used as a replacement for them in
@@ -127,7 +127,7 @@
 
   License information:
 
-  Copyright (c) 2002-2009, ShadowFlare &lt;<a href="mailto:blakflare@hotmail.com">blakflare@hotmail.com</a>&gt;
+  Copyright (c) 2002-2010, ShadowFlare &lt;<a href="mailto:blakflare@hotmail.com">blakflare@hotmail.com</a>&gt;
   All rights reserved.
 
   Redistribution and use in source and binary forms, with or without

@@ -1,6 +1,6 @@
 /*
 
-  ShadowFlare MPQ API Library. (c) ShadowFlare Software 2002-2009
+  ShadowFlare MPQ API Library. (c) ShadowFlare Software 2002-2010
   License information for this code is in license.txt and
   included in this file at the end of this comment.
 
@@ -129,7 +129,7 @@
 
   License information:
 
-  Copyright (c) 2002-2009, ShadowFlare <blakflare@hotmail.com>
+  Copyright (c) 2002-2010, ShadowFlare <blakflare@hotmail.com>
   All rights reserved.
 
   Redistribution and use in source and binary forms, with or without

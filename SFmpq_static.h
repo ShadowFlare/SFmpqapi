@@ -1,6 +1,6 @@
 /*
 
-  ShadowFlare MPQ Static Library. (c) ShadowFlare Software 2002-2003
+  ShadowFlare MPQ Static Library. (c) ShadowFlare Software 2002-2010
   License information for this code is in license.txt
 
 */
