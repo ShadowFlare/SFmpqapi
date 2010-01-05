@@ -9,21 +9,22 @@
 BOOL WriteHashTable(MPQARCHIVE *mpqOpenArc)
 {
 	DWORD tsz;
+	BOOL bReturnVal = FALSE;
 
 	char *buffer = (char *)SFAlloc(sizeof(HASHTABLEENTRY) * mpqOpenArc->MpqHeader.dwHashTableSize);
 	if (buffer) {
 		memcpy(buffer,mpqOpenArc->lpHashTable,sizeof(HASHTABLEENTRY) * mpqOpenArc->MpqHeader.dwHashTableSize);
 		EncryptData((LPBYTE)buffer,sizeof(HASHTABLEENTRY) * mpqOpenArc->MpqHeader.dwHashTableSize,dwHashTableKey);
-		SFSetFilePointer(mpqOpenArc->hFile, mpqOpenArc->qwMPQStart + mpqOpenArc->MpqHeader.dwHashTableOffset + ((UINT64)mpqOpenArc->MpqHeader_Ex.wHashTableOffsetHigh << 32), FILE_BEGIN);
-		WriteFile(mpqOpenArc->hFile,buffer,sizeof(HASHTABLEENTRY) * mpqOpenArc->MpqHeader.dwHashTableSize,&tsz,0);
+		SFSetFilePointer(mpqOpenArc->hFile, mpqOpenArc->qwMPQStart + MakeUInt64(mpqOpenArc->MpqHeader.dwHashTableOffset, mpqOpenArc->MpqHeader_Ex.wHashTableOffsetHigh), FILE_BEGIN);
+		bReturnVal = WriteFile(mpqOpenArc->hFile,buffer,sizeof(HASHTABLEENTRY) * mpqOpenArc->MpqHeader.dwHashTableSize,&tsz,0);
 		SFFree(buffer);
 	}
 	else {
 		EncryptData((LPBYTE)mpqOpenArc->lpHashTable,sizeof(HASHTABLEENTRY) * mpqOpenArc->MpqHeader.dwHashTableSize,dwHashTableKey);
-		SFSetFilePointer(mpqOpenArc->hFile, mpqOpenArc->qwMPQStart + mpqOpenArc->MpqHeader.dwHashTableOffset + ((UINT64)mpqOpenArc->MpqHeader_Ex.wHashTableOffsetHigh << 32), FILE_BEGIN);
-		WriteFile(mpqOpenArc->hFile,mpqOpenArc->lpHashTable,sizeof(HASHTABLEENTRY) * mpqOpenArc->MpqHeader.dwHashTableSize,&tsz,0);
+		SFSetFilePointer(mpqOpenArc->hFile, mpqOpenArc->qwMPQStart + MakeUInt64(mpqOpenArc->MpqHeader.dwHashTableOffset, mpqOpenArc->MpqHeader_Ex.wHashTableOffsetHigh), FILE_BEGIN);
+		bReturnVal = WriteFile(mpqOpenArc->hFile,mpqOpenArc->lpHashTable,sizeof(HASHTABLEENTRY) * mpqOpenArc->MpqHeader.dwHashTableSize,&tsz,0);
 		DecryptData((LPBYTE)mpqOpenArc->lpHashTable,sizeof(HASHTABLEENTRY) * mpqOpenArc->MpqHeader.dwHashTableSize,dwHashTableKey);
 	}
 
-	return TRUE;
+	return bReturnVal;
 }

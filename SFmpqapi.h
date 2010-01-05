@@ -396,6 +396,7 @@ BOOL      SFMPQAPI WINAPI MpqAddWaveFromBuffer(MPQHANDLE hMPQ, LPVOID lpBuffer, 
 BOOL      SFMPQAPI WINAPI MpqRenameAndSetFileLocale(MPQHANDLE hMPQ, LPCSTR lpcOldFileName, LPCSTR lpcNewFileName, LCID nOldLocale, LCID nNewLocale);
 BOOL      SFMPQAPI WINAPI MpqDeleteFileWithLocale(MPQHANDLE hMPQ, LPCSTR lpFileName, LCID nLocale);
 BOOL      SFMPQAPI WINAPI MpqSetFileLocale(MPQHANDLE hMPQ, LPCSTR lpFileName, LCID nOldLocale, LCID nNewLocale);
+BOOL      SFMPQAPI WINAPI MpqCreateArchiveVersion(WORD wVersion);
 
 // These functions do nothing.  They are only provided for
 // compatibility with MPQ extractors that use storm.

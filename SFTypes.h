@@ -60,7 +60,7 @@ union IntConv {
 	L_Low = (UInt32)(R); \
 	L_High = (UInt32)((R) >> 32);
 
-#define MakeUInt64(R_Low, R_High) ((UInt64)(R_Low) + (UInt64)((R_High) << 32))
+#define MakeUInt64(R_Low, R_High) ((UInt64)(R_Low) + ((UInt64)(R_High) << 32))
 
 #endif // #ifndef SFTYPES_INCLUDED
 

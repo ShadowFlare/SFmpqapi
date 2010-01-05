@@ -9,6 +9,7 @@
 BOOL WriteBlockTable(MPQARCHIVE *mpqOpenArc)
 {
 	DWORD tsz;
+	BOOL bReturnVal = FALSE;
 
 	if (mpqOpenArc->MpqHeader.dwBlockTableSize == 0) return TRUE;
 	if (!mpqOpenArc->lpBlockTable) return FALSE;
@@ -17,16 +18,21 @@ BOOL WriteBlockTable(MPQARCHIVE *mpqOpenArc)
 	if (buffer) {
 		memcpy(buffer,mpqOpenArc->lpBlockTable,sizeof(BLOCKTABLEENTRY) * mpqOpenArc->MpqHeader.dwBlockTableSize);
 		EncryptData((LPBYTE)buffer,sizeof(BLOCKTABLEENTRY) * mpqOpenArc->MpqHeader.dwBlockTableSize,dwBlockTableKey);
-		SFSetFilePointer(mpqOpenArc->hFile, mpqOpenArc->qwMPQStart + mpqOpenArc->MpqHeader.dwBlockTableOffset + ((UINT64)mpqOpenArc->MpqHeader_Ex.wBlockTableOffsetHigh << 32), FILE_BEGIN);
-		WriteFile(mpqOpenArc->hFile,buffer,sizeof(BLOCKTABLEENTRY) * mpqOpenArc->MpqHeader.dwBlockTableSize,&tsz,0);
+		SFSetFilePointer(mpqOpenArc->hFile, mpqOpenArc->qwMPQStart + MakeUInt64(mpqOpenArc->MpqHeader.dwBlockTableOffset, mpqOpenArc->MpqHeader_Ex.wBlockTableOffsetHigh), FILE_BEGIN);
+		bReturnVal = WriteFile(mpqOpenArc->hFile,buffer,sizeof(BLOCKTABLEENTRY) * mpqOpenArc->MpqHeader.dwBlockTableSize,&tsz,0);
 		SFFree(buffer);
 	}
 	else {
 		EncryptData((LPBYTE)mpqOpenArc->lpBlockTable,sizeof(BLOCKTABLEENTRY) * mpqOpenArc->MpqHeader.dwBlockTableSize,dwBlockTableKey);
-		SFSetFilePointer(mpqOpenArc->hFile, mpqOpenArc->qwMPQStart + mpqOpenArc->MpqHeader.dwBlockTableOffset + ((UINT64)mpqOpenArc->MpqHeader_Ex.wBlockTableOffsetHigh << 32), FILE_BEGIN);
-		WriteFile(mpqOpenArc->hFile,mpqOpenArc->lpBlockTable,sizeof(BLOCKTABLEENTRY) * mpqOpenArc->MpqHeader.dwBlockTableSize,&tsz,0);
+		SFSetFilePointer(mpqOpenArc->hFile, mpqOpenArc->qwMPQStart + MakeUInt64(mpqOpenArc->MpqHeader.dwBlockTableOffset, mpqOpenArc->MpqHeader_Ex.wBlockTableOffsetHigh), FILE_BEGIN);
+		bReturnVal = WriteFile(mpqOpenArc->hFile,mpqOpenArc->lpBlockTable,sizeof(BLOCKTABLEENTRY) * mpqOpenArc->MpqHeader.dwBlockTableSize,&tsz,0);
 		DecryptData((LPBYTE)mpqOpenArc->lpBlockTable,sizeof(BLOCKTABLEENTRY) * mpqOpenArc->MpqHeader.dwBlockTableSize,dwBlockTableKey);
 	}
 
-	return TRUE;
+	if (bReturnVal && mpqOpenArc->MpqHeader_Ex.qwExtendedBlockOffsetTable) {
+		SFSetFilePointer(mpqOpenArc->hFile, mpqOpenArc->qwMPQStart + mpqOpenArc->MpqHeader_Ex.qwExtendedBlockOffsetTable, FILE_BEGIN);
+		bReturnVal = WriteFile(mpqOpenArc->hFile, mpqOpenArc->lpFileOffsetsHigh, sizeof(UInt16) * mpqOpenArc->MpqHeader.dwBlockTableSize, &tsz, 0);
+	}
+
+	return bReturnVal;
 }

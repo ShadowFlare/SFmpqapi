@@ -27,6 +27,7 @@ EXPORTS
 	MpqRenameAndSetFileLocale=MpqRenameAndSetFileLocale @28
 	MpqDeleteFileWithLocale=MpqDeleteFileWithLocale @29
 	MpqOpenArchiveForUpdateEx=MpqOpenArchiveForUpdateEx @30
+	MpqCreateArchiveVersion=MpqCreateArchiveVersion @31
 
 ;Lmpqapi ordinals
 	SFOpenArchive=SFileOpenArchive @32 NONAME
