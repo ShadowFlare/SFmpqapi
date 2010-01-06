@@ -564,7 +564,7 @@ BOOL SFMPQAPI WINAPI SFileOpenFileAsArchive(MPQHANDLE hSourceMPQ, LPCSTR lpFileN
 		}
 		DWORD dwMpqStart;
 		MPQARCHIVE *mpqOpenArc;
-		dwMpqStart = mpqOpenArc->dwMPQStart + mpqArcFile.lpBlockEntry->dwFileOffset;
+		dwMpqStart = mpqArcFile.lpParentArc->dwMPQStart + mpqArcFile.lpBlockEntry->dwFileOffset;
 		flen = mpqArcFile.lpBlockEntry->dwFullSize;
 		dwMpqStart = FindMpqHeaderAtLocation(hFile,dwMpqStart,flen);
 		if (dwMpqStart==0xFFFFFFFF) {
