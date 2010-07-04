@@ -103,9 +103,6 @@ MPQFILE * FirstLastFile[2] = {0,0};
 
 char StormBasePath[MAX_PATH+1];
 
-#define UNSUPPORTED_COMPRESSION   (0xFF ^ (0x40 | 0x80 | 0x01 | 0x02 | 0x08 | 0x10))
-#define UNSUPPORTED_DECOMPRESSION (0xFF ^ (0x40 | 0x80 | 0x01 | 0x02 | 0x08 | 0x10))
-
 typedef BOOL (WINAPI* funcSCompCompress)(LPVOID lpvDestinationMem, LPDWORD lpdwCompressedSize, LPVOID lpvSourceMem, DWORD dwDecompressedSize, DWORD dwCompressionType, DWORD dwCompressionSubType, DWORD dwWAVQuality);
 typedef BOOL (WINAPI* funcSCompDecompress)(LPVOID lpvDestinationMem, LPDWORD lpdwDecompressedSize, LPVOID lpvSourceMem, DWORD dwCompressedSize);
 funcSCompCompress stormSCompCompress = 0;
@@ -1176,6 +1173,8 @@ BOOL SFMPQAPI WINAPI SFileReadFile(MPQHANDLE hFile,LPVOID lpBuffer,DWORD nNumber
 	DWORD BlockIndex = mpqOpenFile->lpHashEntry->dwBlockTableIndex;
 	if (mpqOpenFile->dwFilePointer+nNumberOfBytesToRead>mpqOpenArc->lpBlockTable[BlockIndex].dwFullSize) nNumberOfBytesToRead = mpqOpenArc->lpBlockTable[BlockIndex].dwFullSize-mpqOpenFile->dwFilePointer;
 	DWORD blockSize = 512 << mpqOpenArc->MpqHeader.wBlockSize;
+	if (mpqOpenArc->lpBlockTable[BlockIndex].dwFlags & MAFA_SINGLEBLOCK)
+		blockSize = mpqOpenArc->lpBlockTable[BlockIndex].dwFullSize;
 	DWORD dwBlockStart = mpqOpenFile->dwFilePointer - (mpqOpenFile->dwFilePointer % blockSize);
     DWORD blockNum = dwBlockStart / blockSize;
     DWORD nBlocks  = (mpqOpenFile->dwFilePointer+nNumberOfBytesToRead) / blockSize;
@@ -1193,12 +1192,18 @@ BOOL SFMPQAPI WINAPI SFileReadFile(MPQHANDLE hFile,LPVOID lpBuffer,DWORD nNumber
 		if (lpOverlapped) lpOverlapped->InternalHigh = 0;
 		return FALSE;
 	}
-	void *blk16Buffer = SFAlloc(blockSize * 16);
-	if (!blk16Buffer) {
-		SFFree(blkBuffer);
-		if (lpNumberOfBytesRead) *lpNumberOfBytesRead = 0;
-		if (lpOverlapped) lpOverlapped->InternalHigh = 0;
-		return FALSE;
+	DWORD nBufferCount;
+	for (nBufferCount = 1; nBufferCount < nBlocks - blockNum && blockSize * nBufferCount < 65536; nBufferCount *= 2) {}
+	if (nBufferCount > nBlocks - blockNum) nBufferCount = nBlocks - blockNum;
+	void *blkLargeBuffer = NULL;
+	if (nBufferCount > 1) {
+		blkLargeBuffer = SFAlloc(blockSize * nBufferCount);
+		if (!blkLargeBuffer) {
+			SFFree(blkBuffer);
+			if (lpNumberOfBytesRead) *lpNumberOfBytesRead = 0;
+			if (lpOverlapped) lpOverlapped->InternalHigh = 0;
+			return FALSE;
+		}
 	}
 	DWORD dwCryptKey = mpqOpenFile->dwCryptKey;
 	//if (mpqOpenArc->lpBlockTable[BlockIndex].dwFlags & MAFA_ENCRYPT) dwCryptKey = HashString(mpqOpenFile->lpFileName,HASH_KEY);
@@ -1215,13 +1220,13 @@ BOOL SFMPQAPI WINAPI SFileReadFile(MPQHANDLE hFile,LPVOID lpBuffer,DWORD nNumber
 		DWORD *dwBlockPtrTable = (DWORD *)SFAlloc((TotalBlocks+1)*4);
 		if (!dwBlockPtrTable) {
 
-			SFFree(blk16Buffer);
+			if (blkLargeBuffer) SFFree(blkLargeBuffer);
 			SFFree(blkBuffer);
 			if (lpNumberOfBytesRead) *lpNumberOfBytesRead = 0;
 			if (lpOverlapped) lpOverlapped->InternalHigh = 0;
 			return FALSE;
 		}
-		if ((mpqOpenArc->lpBlockTable[BlockIndex].dwFlags & MAFA_COMPRESS) || (mpqOpenArc->lpBlockTable[BlockIndex].dwFlags & MAFA_COMPRESS2))
+		if (((mpqOpenArc->lpBlockTable[BlockIndex].dwFlags & MAFA_COMPRESS) || (mpqOpenArc->lpBlockTable[BlockIndex].dwFlags & MAFA_COMPRESS2)) && !(mpqOpenArc->lpBlockTable[BlockIndex].dwFlags & MAFA_SINGLEBLOCK))
 		{
 			SFSetFilePointer(mpqOpenArc->hFile, mpqOpenArc->qwMPQStart + MakeUInt64(mpqOpenArc->lpBlockTable[BlockIndex].dwFileOffset, mpqOpenArc->lpFileOffsetsHigh[BlockIndex]) + HeaderLength, FILE_BEGIN);
 			ReadFile(mpqOpenArc->hFile,dwBlockPtrTable,(TotalBlocks+1)*4,&nBytesRead,0);
@@ -1233,28 +1238,31 @@ BOOL SFMPQAPI WINAPI SFileReadFile(MPQHANDLE hFile,LPVOID lpBuffer,DWORD nNumber
 		{
 			for (i=0;i<TotalBlocks+1;i++) {
 				if (i<TotalBlocks) dwBlockPtrTable[i] = i * blockSize;
-				else dwBlockPtrTable[i] = mpqOpenArc->lpBlockTable[BlockIndex].dwFullSize;
+				else dwBlockPtrTable[i] = mpqOpenArc->lpBlockTable[BlockIndex].dwCompressedSize - HeaderLength;
 			}
 		}
 		mpqOpenFile->lpdwBlockOffsets = dwBlockPtrTable;
 	}
-	BYTE *compbuffer = (BYTE *)SFAlloc(blockSize+3);
-	if (!compbuffer) {
-		SFFree(blk16Buffer);
-		SFFree(blkBuffer);
-		if (lpNumberOfBytesRead) *lpNumberOfBytesRead = 0;
-		if (lpOverlapped) lpOverlapped->InternalHigh = 0;
-		return FALSE;
+	BYTE *compbuffer = NULL;
+	if ((mpqOpenArc->lpBlockTable[BlockIndex].dwFlags & MAFA_COMPRESS) || (mpqOpenArc->lpBlockTable[BlockIndex].dwFlags & MAFA_COMPRESS2)) {
+		compbuffer = (BYTE *)SFAlloc(blockSize+3);
+		if (!compbuffer) {
+			if (blkLargeBuffer) SFFree(blkLargeBuffer);
+			SFFree(blkBuffer);
+			if (lpNumberOfBytesRead) *lpNumberOfBytesRead = 0;
+			if (lpOverlapped) lpOverlapped->InternalHigh = 0;
+			return FALSE;
+		}
 	}
 	DWORD blk=0,blki=0;
 	for (i=blockNum;i<nBlocks;i++) {
-		if (blk==0) {
+		if (blk==0 && blkLargeBuffer) {
 			SFSetFilePointer(mpqOpenArc->hFile, mpqOpenArc->qwMPQStart + MakeUInt64(mpqOpenArc->lpBlockTable[BlockIndex].dwFileOffset, mpqOpenArc->lpFileOffsetsHigh[BlockIndex]) + HeaderLength + mpqOpenFile->lpdwBlockOffsets[i], FILE_BEGIN);
 			blki=i;
-			if (i+16>nBlocks) {
-				if (ReadFile(mpqOpenArc->hFile,blk16Buffer,mpqOpenFile->lpdwBlockOffsets[nBlocks]-mpqOpenFile->lpdwBlockOffsets[i],&nBytesRead,0)==0) {
-					SFFree(compbuffer);
-					SFFree(blk16Buffer);
+			if (i+nBufferCount>nBlocks) {
+				if (ReadFile(mpqOpenArc->hFile,blkLargeBuffer,mpqOpenFile->lpdwBlockOffsets[nBlocks]-mpqOpenFile->lpdwBlockOffsets[i],&nBytesRead,0)==0) {
+					if (compbuffer) SFFree(compbuffer);
+					SFFree(blkLargeBuffer);
 					SFFree(blkBuffer);
 					if (lpNumberOfBytesRead) *lpNumberOfBytesRead = TotalBytesRead;
 					if (lpOverlapped) lpOverlapped->InternalHigh = TotalBytesRead;
@@ -1263,9 +1271,9 @@ BOOL SFMPQAPI WINAPI SFileReadFile(MPQHANDLE hFile,LPVOID lpBuffer,DWORD nNumber
 
 			}
 			else {
-				if (ReadFile(mpqOpenArc->hFile,blk16Buffer,mpqOpenFile->lpdwBlockOffsets[i+16]-mpqOpenFile->lpdwBlockOffsets[i],&nBytesRead,0)==0) {
-					SFFree(compbuffer);
-					SFFree(blk16Buffer);
+				if (ReadFile(mpqOpenArc->hFile,blkLargeBuffer,mpqOpenFile->lpdwBlockOffsets[i+nBufferCount]-mpqOpenFile->lpdwBlockOffsets[i],&nBytesRead,0)==0) {
+					if (compbuffer) SFFree(compbuffer);
+					SFFree(blkLargeBuffer);
 					SFFree(blkBuffer);
 					if (lpNumberOfBytesRead) *lpNumberOfBytesRead = TotalBytesRead;
 					if (lpOverlapped) lpOverlapped->InternalHigh = TotalBytesRead;
@@ -1273,7 +1281,20 @@ BOOL SFMPQAPI WINAPI SFileReadFile(MPQHANDLE hFile,LPVOID lpBuffer,DWORD nNumber
 				}
 			}
 		}
-		memcpy(blkBuffer,((char *)blk16Buffer)+(mpqOpenFile->lpdwBlockOffsets[blki+blk]-mpqOpenFile->lpdwBlockOffsets[blki]),mpqOpenFile->lpdwBlockOffsets[i+1]-mpqOpenFile->lpdwBlockOffsets[i]);
+		if (blkLargeBuffer) {
+			memcpy(blkBuffer,((char *)blkLargeBuffer)+(mpqOpenFile->lpdwBlockOffsets[blki+blk]-mpqOpenFile->lpdwBlockOffsets[blki]),mpqOpenFile->lpdwBlockOffsets[i+1]-mpqOpenFile->lpdwBlockOffsets[i]);
+		}
+		else {
+			SFSetFilePointer(mpqOpenArc->hFile, mpqOpenArc->qwMPQStart + MakeUInt64(mpqOpenArc->lpBlockTable[BlockIndex].dwFileOffset, mpqOpenArc->lpFileOffsetsHigh[BlockIndex]) + HeaderLength + mpqOpenFile->lpdwBlockOffsets[i], FILE_BEGIN);
+			blki=i;
+			if (ReadFile(mpqOpenArc->hFile,blkBuffer,mpqOpenFile->lpdwBlockOffsets[i+1]-mpqOpenFile->lpdwBlockOffsets[i],&nBytesRead,0)==0) {
+				if (compbuffer) SFFree(compbuffer);
+				SFFree(blkBuffer);
+				if (lpNumberOfBytesRead) *lpNumberOfBytesRead = TotalBytesRead;
+				if (lpOverlapped) lpOverlapped->InternalHigh = TotalBytesRead;
+				return FALSE;
+			}
+		}
 		if (mpqOpenArc->lpBlockTable[BlockIndex].dwFlags & MAFA_ENCRYPT)
 		{
 			DecryptData((LPBYTE)blkBuffer,mpqOpenFile->lpdwBlockOffsets[i+1]-mpqOpenFile->lpdwBlockOffsets[i],dwCryptKey+i);
@@ -1345,10 +1366,10 @@ BOOL SFMPQAPI WINAPI SFileReadFile(MPQHANDLE hFile,LPVOID lpBuffer,DWORD nNumber
 				nNumberOfBytesToRead-=nNumberOfBytesToRead;
 			}
 		}
-		blk = (blk+1) % 16;
+		blk = (blk+1) % nBufferCount;
 	}
-	SFFree(compbuffer);
-	SFFree(blk16Buffer);
+	if (compbuffer) SFFree(compbuffer);
+	if (blkLargeBuffer) SFFree(blkLargeBuffer);
 	SFFree(blkBuffer);
 	if (lpNumberOfBytesRead) *lpNumberOfBytesRead = TotalBytesRead;
 	if (lpOverlapped) lpOverlapped->InternalHigh = TotalBytesRead;
