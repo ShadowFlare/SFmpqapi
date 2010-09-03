@@ -3,7 +3,7 @@
 #ifndef WINDOWS_H_INCLUDED
 #define WINDOWS_H_INCLUDED
 
-#include <malloc.h>
+#include <stdlib.h>
 #include <string.h>
 #include <ctype.h>
 #include <fcntl.h>
