@@ -1102,7 +1102,7 @@ DWORD SFMPQAPI WINAPI SFileGetFileInfo(MPQHANDLE hFile, DWORD dwInfoType)
 	return (DWORD)-1;
 }
 
-DWORD SFMPQAPI WINAPI SFileSetFilePointer(MPQHANDLE hFile, long lDistanceToMove, PLONG lplDistanceToMoveHigh, DWORD dwMoveMethod)
+DWORD SFMPQAPI WINAPI SFileSetFilePointer(MPQHANDLE hFile, LONG lDistanceToMove, PLONG lplDistanceToMoveHigh, DWORD dwMoveMethod)
 {
 	if (!hFile) {
 		SetLastError(ERROR_INVALID_PARAMETER);
@@ -1154,7 +1154,7 @@ BOOL SFMPQAPI WINAPI SFileReadFile(MPQHANDLE hFile,LPVOID lpBuffer,DWORD nNumber
 	}
 	if (lpOverlapped)
 		if (lpOverlapped->Internal || lpOverlapped->InternalHigh || lpOverlapped->Offset || lpOverlapped->OffsetHigh || lpOverlapped->hEvent)
-			SFileSetFilePointer(hFile,lpOverlapped->Offset,(long *)&lpOverlapped->OffsetHigh,FILE_BEGIN);
+			SFileSetFilePointer(hFile,lpOverlapped->Offset,(LONG *)&lpOverlapped->OffsetHigh,FILE_BEGIN);
 	if (nNumberOfBytesToRead==0) {
 		if (lpNumberOfBytesRead) *lpNumberOfBytesRead = 0;
 		if (lpOverlapped) lpOverlapped->InternalHigh = 0;

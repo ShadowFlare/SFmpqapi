@@ -157,14 +157,14 @@ char * strupr(char *lpString)
 	return lpString;
 }
 
-char * strdup(const char *lpString)
+/*char * strdup(const char *lpString)
 {
 	if (lpString==0) return 0;
 	char *lpStrCopy = (char *)malloc(strlen(lpString)+1);
 	if (lpStrCopy==0) return 0;
 	strcpy(lpStrCopy,lpString);
 	return lpStrCopy;
-}
+}*/
 
 int memicmp(const char *lpString1, const char *lpString2, size_t dwSize)
 {

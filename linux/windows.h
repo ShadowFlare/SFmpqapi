@@ -9,6 +9,7 @@
 #include <fcntl.h>
 #include <unistd.h>
 #include <sys/stat.h>
+#include <stdint.h>
 
 #define LINUX_PORT
 
@@ -21,21 +22,20 @@ extern "C" {
 #define __stdcall
 #define WINAPI __stdcall
 #define APIENTRY __stdcall
-#define __declspec(dllimport)
-#define __declspec(dllexport)
+#define __declspec(x)
 #define __inline inline
 #define __forceinline inline
 
 #define CONST const
 
 // Type defines
-typedef unsigned char BYTE;
-typedef unsigned short int WORD;
-typedef unsigned long int DWORD;
-typedef short int SHORT;
-typedef unsigned short int USHORT;
+typedef uint8_t BYTE;
+typedef uint16_t WORD;
+typedef uint32_t DWORD;
+typedef int16_t SHORT;
+typedef uint16_t USHORT;
 typedef DWORD LCID;
-typedef long int LONG;
+typedef int32_t LONG;
 typedef LONG * PLONG;
 typedef int BOOL;
 typedef void * LPVOID;
@@ -67,6 +67,8 @@ typedef struct _SECURITY_ATTRIBUTES {
 #define TRUE 1
 #define MAX_PATH 260
 #define INVALID_HANDLE_VALUE ((HANDLE)-1)
+#define INVALID_FILE_SIZE ((DWORD)-1)
+#define INVALID_SET_FILE_POINTER ((DWORD)-1)
 #define DLL_PROCESS_ATTACH 1
 #define DLL_THREAD_ATTACH  2
 #define DLL_THREAD_DETACH  3
@@ -114,6 +116,7 @@ typedef struct _SECURITY_ATTRIBUTES {
 #define FILE_BEGIN           0
 #define FILE_CURRENT         1
 #define FILE_END             2
+#define NO_ERROR 0L
 #define ERROR_FILE_NOT_FOUND             2L
 #define ERROR_ACCESS_DENIED              5L
 #define ERROR_INVALID_PARAMETER          87L    // dderror
@@ -138,7 +141,7 @@ BOOL WINAPI DeleteFile(LPCSTR lpFileName);
 // Declarations for C runtime functions
 char * strlwr(char *lpString);
 char * strupr(char *lpString);
-char * strdup(const char *lpString);
+//char * strdup(const char *lpString);
 #define stricmp strcasecmp
 #define strnicmp strncasecmp
 int memicmp(const char *lpString1, const char *lpString2, size_t dwSize);
