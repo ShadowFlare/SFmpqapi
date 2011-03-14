@@ -32,6 +32,7 @@ extern "C" {
 typedef uint8_t BYTE;
 typedef uint16_t WORD;
 typedef uint32_t DWORD;
+typedef uint64_t UINT64;
 typedef int16_t SHORT;
 typedef uint16_t USHORT;
 typedef DWORD LCID;
