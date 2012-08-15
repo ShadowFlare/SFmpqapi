@@ -2167,6 +2167,7 @@ BOOL SFMPQAPI WINAPI MpqAddFileFromBufferEx(MPQHANDLE hMPQ, LPVOID lpBuffer, DWO
 			if (i==TotalBlocks-1 && (ucfsz % blockSize)!=0) blockSize=ucfsz % blockSize;
 			DWORD outLength=blockSize;
 			BYTE *compdata = compbuffer;
+			char *oldoutbuffer = outbuffer;
 			if (dwFlags & MAFA_COMPRESS)
 			{
 				memcpy(compdata,(char *)buffer+CurPos,blockSize);
@@ -2213,6 +2214,7 @@ BOOL SFMPQAPI WINAPI MpqAddFileFromBufferEx(MPQHANDLE hMPQ, LPVOID lpBuffer, DWO
 				memcpy((char *)newbuffer+LastOffset,outbuffer,outLength);
 				LastOffset+=outLength;
 			}
+			outbuffer = oldoutbuffer;
 			CurPos += blockSize;
 		}
 		fsz = LastOffset;
@@ -2558,7 +2560,7 @@ BOOL SFMPQAPI WINAPI MpqCompactArchive(MPQHANDLE hMPQ)
 	UInt64 i;
 	if (hFile==INVALID_HANDLE_VALUE) {
 		for (i=0;i<10000;i++) {
-			sprintf(lpFileName,"%s.compact.%04ld",mpqOpenArc->lpFileName,i);
+			sprintf(lpFileName,"%s.compact.%04d",mpqOpenArc->lpFileName,i);
 
 			hFile = CreateFile(lpFileName,GENERIC_READ|GENERIC_WRITE,0,0,CREATE_NEW,0,0);
 			if (hFile!=INVALID_HANDLE_VALUE) break;
@@ -3420,7 +3422,7 @@ DWORD DetectFileSeedEx(MPQARCHIVE * mpqOpenArc, HASHTABLEENTRY * lpHashEntry, LP
 		else {
 			HANDLE hlFile,hMPQ=(HANDLE)mpqOpenArc;
 			DWORD fsz;
-			char *listbuffer;
+			char *listbuffer = 0;
 			LCID lcOldLocale = LocaleID;
 			for (DWORD lcn=0;lcn<nLocales;lcn++) {
 				LocaleID = availLocales[lcn];
@@ -3443,7 +3445,7 @@ DWORD DetectFileSeedEx(MPQARCHIVE * mpqOpenArc, HASHTABLEENTRY * lpHashEntry, LP
 					}
 					SFileCloseFile(hlFile);
 					if (listbuffer!=0) {
-						char *listline;
+						char *listline = 0;
 						for (listline=listbuffer;listline!=0;listline=nextline(listline)) {
 							if (listline[0]==0) break;
 							DWORD lnlen=strlnlen(listline);
