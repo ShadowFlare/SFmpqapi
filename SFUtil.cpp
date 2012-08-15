@@ -60,7 +60,7 @@ Int64 SFSetFilePointer(HANDLE hFile, Int64 nDistance, UInt32 dwMoveMethod)
 
 	FilePos.i32[0] = ::SetFilePointer(hFile, FilePos.i32[0], &FilePos.i32[1], dwMoveMethod);
 
-	if (FilePos.i32[0] == INVALID_SET_FILE_POINTER) {
+	if (FilePos.ui32[0] == INVALID_SET_FILE_POINTER) {
 		if (::GetLastError() != NO_ERROR)
 			return -1;
 	}
@@ -85,7 +85,7 @@ char *nextline(const char *strline)
 	const char *strcr = strchr(strline,'\r');
 	const char *strlf = strchr(strline,'\n');
 	if (strcr==0 && strlf==0) return 0;
-	const char *streol;
+	const char *streol = strlf;
 	if (strcr!=0 && (strcr<strlf || strlf==0)) streol = strcr;
 	if (strlf!=0 && (strlf<strcr || strcr==0)) streol = strlf;
 	do {
