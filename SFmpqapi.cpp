@@ -2559,13 +2559,14 @@ BOOL SFMPQAPI WINAPI MpqCompactArchive(MPQHANDLE hMPQ)
 	HANDLE hFile = CreateFile(lpFileName,GENERIC_READ|GENERIC_WRITE,0,0,CREATE_NEW,0,0);
 	UInt64 i;
 	if (hFile==INVALID_HANDLE_VALUE) {
-		for (i=0;i<10000;i++) {
-			sprintf(lpFileName,"%s.compact.%04d",mpqOpenArc->lpFileName,i);
+		int filenum = 0;
+		for (filenum=0;filenum<10000;filenum++) {
+			sprintf(lpFileName,"%s.compact.%04d",mpqOpenArc->lpFileName,filenum);
 
 			hFile = CreateFile(lpFileName,GENERIC_READ|GENERIC_WRITE,0,0,CREATE_NEW,0,0);
 			if (hFile!=INVALID_HANDLE_VALUE) break;
 		}
-		if (i==10000) return FALSE;
+		if (filenum==10000) return FALSE;
 	}
 	UInt64 qwLastOffset = mpqOpenArc->dwHeaderSize;
 	DWORD tsz;
