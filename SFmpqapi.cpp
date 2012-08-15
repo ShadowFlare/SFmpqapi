@@ -2187,6 +2187,7 @@ BOOL SFMPQAPI WINAPI MpqAddFileFromBufferEx(MPQHANDLE hMPQ, LPVOID lpBuffer, DWO
 			if (i==TotalBlocks-1 && (ucfsz % blockSize)!=0) blockSize=ucfsz % blockSize;
 			DWORD outLength=blockSize;
 			BYTE *compdata = compbuffer;
+			char *oldoutbuffer = outbuffer;
 			if (dwFlags & MAFA_COMPRESS)
 			{
 				memcpy(compdata,(char *)buffer+CurPos,blockSize);
@@ -2233,6 +2234,7 @@ BOOL SFMPQAPI WINAPI MpqAddFileFromBufferEx(MPQHANDLE hMPQ, LPVOID lpBuffer, DWO
 				memcpy((char *)newbuffer+LastOffset,outbuffer,outLength);
 				LastOffset+=outLength;
 			}
+			outbuffer = oldoutbuffer;
 			CurPos += blockSize;
 		}
 		fsz = LastOffset;
