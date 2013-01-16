@@ -3115,16 +3115,19 @@ MPQHANDLE GetFreeHashTableEntry(MPQHANDLE hMPQ, LPCSTR lpFileName, LCID FileLoca
 	DWORD i=dwTablePos, nFirstFree = 0xFFFFFFFF;
 	do
 	{
-		if ((mpqOpenArc->lpHashTable[i].dwBlockTableIndex&0xFFFFFFFE)==0xFFFFFFFE && (nFirstFree == 0xFFFFFFFF || mpqOpenArc->lpHashTable[i].dwBlockTableIndex == 0xFFFFFFFF))
+		if ((mpqOpenArc->lpHashTable[i].dwBlockTableIndex&0xFFFFFFFE)==0xFFFFFFFE)
 		{
-			if (mpqOpenArc->lpHashTable[i].dwBlockTableIndex == 0xFFFFFFFF)
+			if (nFirstFree == 0xFFFFFFFF || mpqOpenArc->lpHashTable[i].dwBlockTableIndex == 0xFFFFFFFF)
 			{
-				if (nFirstFree == 0xFFFFFFFF)
-					return (MPQHANDLE)&mpqOpenArc->lpHashTable[i];
-				else
-					return (MPQHANDLE)&mpqOpenArc->lpHashTable[nFirstFree];
+				if (mpqOpenArc->lpHashTable[i].dwBlockTableIndex == 0xFFFFFFFF)
+				{
+					if (nFirstFree == 0xFFFFFFFF)
+						return (MPQHANDLE)&mpqOpenArc->lpHashTable[i];
+					else
+						return (MPQHANDLE)&mpqOpenArc->lpHashTable[nFirstFree];
+				}
+				else nFirstFree = i;
 			}
-			else nFirstFree = i;
 		}
 		else if (mpqOpenArc->lpHashTable[i].dwNameHashA==dwNameHashA && mpqOpenArc->lpHashTable[i].dwNameHashB==dwNameHashB && mpqOpenArc->lpHashTable[i].lcLocale==FileLocale)
 		{
