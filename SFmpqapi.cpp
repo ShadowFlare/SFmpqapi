@@ -1136,21 +1136,18 @@ DWORD SFMPQAPI WINAPI SFileSetFilePointer(MPQHANDLE hFile, LONG lDistanceToMove,
 		long fsz = mpqOpenFile->lpBlockEntry->dwFullSize;
 		long cpos = mpqOpenFile->dwFilePointer;
 		switch (dwMoveMethod) {
-		case FILE_BEGIN:
-			if (lDistanceToMove<0 || lDistanceToMove>fsz) return (DWORD)-1;
-			mpqOpenFile->dwFilePointer = lDistanceToMove;
-			break;
 		case FILE_CURRENT:
-			if (lDistanceToMove<cpos || cpos+lDistanceToMove>fsz) return (DWORD)-1;
+			if (cpos + lDistanceToMove < 0 || cpos + lDistanceToMove > fsz) return (DWORD)-1;
 			mpqOpenFile->dwFilePointer += lDistanceToMove;
 			break;
 
 		case FILE_END:
-			if (lDistanceToMove<fsz || lDistanceToMove>0) return (DWORD)-1;
-			mpqOpenFile->dwFilePointer = fsz+lDistanceToMove;
+			if (fsz + lDistanceToMove < 0 || lDistanceToMove > 0) return (DWORD)-1;
+			mpqOpenFile->dwFilePointer = fsz + lDistanceToMove;
 			break;
+		case FILE_BEGIN:
 		default:
-			if (lDistanceToMove<0 || lDistanceToMove>fsz) return (DWORD)-1;
+			if (lDistanceToMove < 0 || lDistanceToMove > fsz) return (DWORD)-1;
 			mpqOpenFile->dwFilePointer = lDistanceToMove;
 		}
 		if (lplDistanceToMoveHigh!=0) *lplDistanceToMoveHigh = 0;
