@@ -60,7 +60,11 @@ UInt64 SFSetFilePointer(HANDLE hFile, Int64 nDistance, UInt32 dwMoveMethod)
 
 	FilePos.ui32[0] = ::SetFilePointer(hFile, FilePos.i32[0], &FilePos.i32[1], dwMoveMethod);
 
+#ifdef INVALID_SET_FILE_POINTER
 	if (FilePos.ui32[0] == INVALID_SET_FILE_POINTER) {
+#else
+	if (FilePos.ui32[0] == INVALID_FILE_SIZE) {
+#endif
 		if (::GetLastError() != NO_ERROR)
 			return (UInt64)-1;
 	}

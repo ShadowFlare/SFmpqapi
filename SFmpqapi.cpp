@@ -1114,21 +1114,18 @@ DWORD SFMPQAPI WINAPI SFileSetFilePointer(MPQHANDLE hFile, LONG lDistanceToMove,
 		long fsz = mpqOpenFile->lpBlockEntry->dwFullSize;
 		long cpos = mpqOpenFile->dwFilePointer;
 		switch (dwMoveMethod) {
-		case FILE_BEGIN:
-			if (lDistanceToMove<0 || lDistanceToMove>fsz) return (DWORD)-1;
-			mpqOpenFile->dwFilePointer = lDistanceToMove;
-			break;
 		case FILE_CURRENT:
-			if (lDistanceToMove<cpos || cpos+lDistanceToMove>fsz) return (DWORD)-1;
+			if (cpos + lDistanceToMove < 0 || cpos + lDistanceToMove > fsz) return (DWORD)-1;
 			mpqOpenFile->dwFilePointer += lDistanceToMove;
 			break;
 
 		case FILE_END:
-			if (lDistanceToMove<fsz || lDistanceToMove>0) return (DWORD)-1;
-			mpqOpenFile->dwFilePointer = fsz+lDistanceToMove;
+			if (fsz + lDistanceToMove < 0 || lDistanceToMove > 0) return (DWORD)-1;
+			mpqOpenFile->dwFilePointer = fsz + lDistanceToMove;
 			break;
+		case FILE_BEGIN:
 		default:
-			if (lDistanceToMove<0 || lDistanceToMove>fsz) return (DWORD)-1;
+			if (lDistanceToMove < 0 || lDistanceToMove > fsz) return (DWORD)-1;
 			mpqOpenFile->dwFilePointer = lDistanceToMove;
 		}
 		if (lplDistanceToMoveHigh!=0) *lplDistanceToMoveHigh = 0;
@@ -3135,16 +3132,19 @@ MPQHANDLE GetFreeHashTableEntry(MPQHANDLE hMPQ, LPCSTR lpFileName, LCID FileLoca
 	DWORD i=dwTablePos, nFirstFree = 0xFFFFFFFF;
 	do
 	{
-		if ((mpqOpenArc->lpHashTable[i].dwBlockTableIndex&0xFFFFFFFE)==0xFFFFFFFE && (nFirstFree == 0xFFFFFFFF || mpqOpenArc->lpHashTable[i].dwBlockTableIndex == 0xFFFFFFFF))
+		if ((mpqOpenArc->lpHashTable[i].dwBlockTableIndex&0xFFFFFFFE)==0xFFFFFFFE)
 		{
-			if (mpqOpenArc->lpHashTable[i].dwBlockTableIndex == 0xFFFFFFFF)
+			if (nFirstFree == 0xFFFFFFFF || mpqOpenArc->lpHashTable[i].dwBlockTableIndex == 0xFFFFFFFF)
 			{
-				if (nFirstFree == 0xFFFFFFFF)
-					return (MPQHANDLE)&mpqOpenArc->lpHashTable[i];
-				else
-					return (MPQHANDLE)&mpqOpenArc->lpHashTable[nFirstFree];
+				if (mpqOpenArc->lpHashTable[i].dwBlockTableIndex == 0xFFFFFFFF)
+				{
+					if (nFirstFree == 0xFFFFFFFF)
+						return (MPQHANDLE)&mpqOpenArc->lpHashTable[i];
+					else
+						return (MPQHANDLE)&mpqOpenArc->lpHashTable[nFirstFree];
+				}
+				else nFirstFree = i;
 			}
-			else nFirstFree = i;
 		}
 		else if (mpqOpenArc->lpHashTable[i].dwNameHashA==dwNameHashA && mpqOpenArc->lpHashTable[i].dwNameHashB==dwNameHashB && mpqOpenArc->lpHashTable[i].lcLocale==FileLocale)
 		{
@@ -3157,6 +3157,8 @@ MPQHANDLE GetFreeHashTableEntry(MPQHANDLE hMPQ, LPCSTR lpFileName, LCID FileLoca
 		}
 		i = (i + 1) % mpqOpenArc->MpqHeader.dwHashTableSize;
 	} while (i!=dwTablePos);
+	if (nFirstFree != 0xFFFFFFFF)
+		return (MPQHANDLE)&mpqOpenArc->lpHashTable[nFirstFree];
 	SetLastError(MPQ_ERROR_HASH_TABLE_FULL);
 	return 0;
 }
