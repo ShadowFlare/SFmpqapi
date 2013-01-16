@@ -3137,6 +3137,8 @@ MPQHANDLE GetFreeHashTableEntry(MPQHANDLE hMPQ, LPCSTR lpFileName, LCID FileLoca
 		}
 		i = (i + 1) % mpqOpenArc->MpqHeader.dwHashTableSize;
 	} while (i!=dwTablePos);
+	if (nFirstFree != 0xFFFFFFFF)
+		return (MPQHANDLE)&mpqOpenArc->lpHashTable[nFirstFree];
 	SetLastError(MPQ_ERROR_HASH_TABLE_FULL);
 	return 0;
 }
