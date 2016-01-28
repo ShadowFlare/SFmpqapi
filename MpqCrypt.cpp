@@ -133,7 +133,7 @@ bool DecryptData(UInt8 *lpbyBuffer, UInt32 dwLength, UInt32 dwKey)
 // block - DWORD array of block positions
 // ch    - Decrypted value of the first block pos
 
-UInt32 DetectFileSeed(UInt32 * block, UInt32 decrypted, UInt32 blocksize)
+UInt32 DetectFileSeed(const UInt32 * block, UInt32 decrypted, UInt32 blocksize)
 {
     UInt32 saveSeed1;
     UInt32 temp = *block ^ decrypted;    // temp = seed1 + seed2

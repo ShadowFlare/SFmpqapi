@@ -425,7 +425,7 @@ BOOL      SFMPQAPI WINAPI SFileGetFileName(MPQHANDLE hFile, LPSTR lpBuffer, DWOR
 DWORD     SFMPQAPI WINAPI SFileSetFilePointer(MPQHANDLE hFile, LONG lDistanceToMove, PLONG lplDistanceToMoveHigh, DWORD dwMoveMethod);
 BOOL      SFMPQAPI WINAPI SFileReadFile(MPQHANDLE hFile, LPVOID lpBuffer, DWORD nNumberOfBytesToRead, LPDWORD lpNumberOfBytesRead, LPOVERLAPPED lpOverlapped);
 LCID      SFMPQAPI WINAPI SFileSetLocale(LCID nNewLocale);
-BOOL      SFMPQAPI WINAPI SFileGetBasePath(LPCSTR lpBuffer, DWORD dwBufferLength);
+BOOL      SFMPQAPI WINAPI SFileGetBasePath(LPSTR lpBuffer, DWORD dwBufferLength);
 BOOL      SFMPQAPI WINAPI SFileSetBasePath(LPCSTR lpNewBasePath);
 
 // Extra storm-related functions
@@ -446,8 +446,8 @@ BOOL      SFMPQAPI WINAPI MpqCompactArchive(MPQHANDLE hMPQ);
 // Extra archive editing functions
 MPQHANDLE SFMPQAPI WINAPI MpqOpenArchiveForUpdateEx(LPCSTR lpFileName, DWORD dwFlags, DWORD dwMaximumFilesInArchive, DWORD dwBlockSize);
 BOOL      SFMPQAPI WINAPI MpqAddFileToArchiveEx(MPQHANDLE hMPQ, LPCSTR lpSourceFileName, LPCSTR lpDestFileName, DWORD dwFlags, DWORD dwCompressionType, DWORD dwCompressLevel);
-BOOL      SFMPQAPI WINAPI MpqAddFileFromBufferEx(MPQHANDLE hMPQ, LPVOID lpBuffer, DWORD dwLength, LPCSTR lpFileName, DWORD dwFlags, DWORD dwCompressionType, DWORD dwCompressLevel);
-BOOL      SFMPQAPI WINAPI MpqAddFileFromBuffer(MPQHANDLE hMPQ, LPVOID lpBuffer, DWORD dwLength, LPCSTR lpFileName, DWORD dwFlags);
+BOOL      SFMPQAPI WINAPI MpqAddFileFromBufferEx(MPQHANDLE hMPQ, LPCVOID lpBuffer, DWORD dwLength, LPCSTR lpFileName, DWORD dwFlags, DWORD dwCompressionType, DWORD dwCompressLevel);
+BOOL      SFMPQAPI WINAPI MpqAddFileFromBuffer(MPQHANDLE hMPQ, LPCVOID lpBuffer, DWORD dwLength, LPCSTR lpFileName, DWORD dwFlags);
 BOOL      SFMPQAPI WINAPI MpqAddWaveFromBuffer(MPQHANDLE hMPQ, LPVOID lpBuffer, DWORD dwLength, LPCSTR lpFileName, DWORD dwFlags, DWORD dwQuality);
 BOOL      SFMPQAPI WINAPI MpqRenameAndSetFileLocale(MPQHANDLE hMPQ, LPCSTR lpcOldFileName, LPCSTR lpcNewFileName, LCID nOldLocale, LCID nNewLocale);
 BOOL      SFMPQAPI WINAPI MpqDeleteFileWithLocale(MPQHANDLE hMPQ, LPCSTR lpFileName, LCID nLocale);
