@@ -251,7 +251,7 @@ LPCSTR SFMPQAPI WINAPI SFMpqGetVersionString()
 	return SFMpqVersionString;
 }
 
-DWORD  SFMPQAPI WINAPI SFMpqGetVersionString2(LPCSTR lpBuffer, DWORD dwBufferLength)
+DWORD  SFMPQAPI WINAPI SFMpqGetVersionString2(LPSTR lpBuffer, DWORD dwBufferLength)
 {
 	if (!lpBuffer) {
 		SetLastError(ERROR_INVALID_PARAMETER);
@@ -260,8 +260,8 @@ DWORD  SFMPQAPI WINAPI SFMpqGetVersionString2(LPCSTR lpBuffer, DWORD dwBufferLen
 
 	DWORD slen = strlen(SFMpqVersionString)+1;
 
-	if (dwBufferLength>=slen) memcpy((void *)lpBuffer,SFMpqVersionString,slen);
-	else memcpy((void *)lpBuffer,SFMpqVersionString,dwBufferLength);
+	if (dwBufferLength>=slen) memcpy(lpBuffer,SFMpqVersionString,slen);
+	else memcpy(lpBuffer,SFMpqVersionString,dwBufferLength);
 
 	return slen;
 }
@@ -745,7 +745,7 @@ BOOL SFMPQAPI WINAPI SFileCloseArchive(MPQHANDLE hMPQ)
 	return TRUE;
 }
 
-BOOL SFMPQAPI WINAPI SFileGetArchiveName(MPQHANDLE hMPQ, LPCSTR lpBuffer, DWORD dwBufferLength)
+BOOL SFMPQAPI WINAPI SFileGetArchiveName(MPQHANDLE hMPQ, LPSTR lpBuffer, DWORD dwBufferLength)
 {
 	if (hMPQ==0 || lpBuffer==0) {
 		SetLastError(ERROR_INVALID_PARAMETER);
@@ -753,13 +753,13 @@ BOOL SFMPQAPI WINAPI SFileGetArchiveName(MPQHANDLE hMPQ, LPCSTR lpBuffer, DWORD 
 	}
 
 	DWORD dwhType = GetHandleType(hMPQ);
-	char *lpFileName;
+	const char *lpFileName;
 	if (dwhType==SFILE_TYPE_MPQ) lpFileName = ((MPQARCHIVE *)hMPQ)->lpFileName;
 	else if (dwhType==SFILE_TYPE_FILE) lpFileName = ((MPQFILE *)hMPQ)->lpFileName;
 	else return FALSE;
 	DWORD slen = strlen(lpFileName)+1;
-	if (dwBufferLength>=slen) memcpy((void *)lpBuffer,lpFileName,slen);
-	else memcpy((void *)lpBuffer,lpFileName,dwBufferLength);
+	if (dwBufferLength>=slen) memcpy(lpBuffer,lpFileName,slen);
+	else memcpy(lpBuffer,lpFileName,dwBufferLength);
 	return TRUE;
 }
 
@@ -1024,7 +1024,7 @@ BOOL SFMPQAPI WINAPI SFileGetFileArchive(MPQHANDLE hFile, MPQHANDLE *hMPQ)
 	}
 }
 
-BOOL SFMPQAPI WINAPI SFileGetFileName(MPQHANDLE hFile, LPCSTR lpBuffer, DWORD dwBufferLength)
+BOOL SFMPQAPI WINAPI SFileGetFileName(MPQHANDLE hFile, LPSTR lpBuffer, DWORD dwBufferLength)
 {
 	return SFileGetArchiveName(hFile,lpBuffer,dwBufferLength);
 }
@@ -1473,7 +1473,7 @@ BOOL SFMPQAPI WINAPI SFileSetArchivePriority(MPQHANDLE hMPQ, DWORD dwPriority)
 
 int StringICompare(const void *arg1,const void *arg2)
 {
-	return stricmp(*(char **)arg1,*(char **)arg2);
+	return stricmp(*(const char * const *)arg1,*(const char * const *)arg2);
 }
 
 BOOL SFMPQAPI WINAPI SFileListFiles(MPQHANDLE hMPQ, LPCSTR lpFileLists, FILELISTENTRY *lpListBuffer, DWORD dwFlags)
@@ -3332,7 +3332,7 @@ BOOL RemoveFromInternalListing(MPQHANDLE hMPQ, LPCSTR lpFileName)
 					SFFree(buffercopy);
 					//LCID dwOldLocale=LocaleID;
 					//LocaleID=0;
-					MpqAddFileFromBuffer(hMPQ,(LPVOID)"\x00",0,INTERNAL_LISTFILE,MAFA_COMPRESS|MAFA_ENCRYPT|MAFA_MODCRYPTKEY|MAFA_REPLACE_EXISTING);
+					MpqAddFileFromBuffer(hMPQ,"\x00",0,INTERNAL_LISTFILE,MAFA_COMPRESS|MAFA_ENCRYPT|MAFA_MODCRYPTKEY|MAFA_REPLACE_EXISTING);
 					//LocaleID=dwOldLocale;
 					SFFree(buffer);
 					return TRUE;

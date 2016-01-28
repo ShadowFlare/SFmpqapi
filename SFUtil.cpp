@@ -83,7 +83,8 @@ size_t strlnlen(const char *strline)
 	return strlen(strline);
 }
 
-char *nextline(const char *strline)
+
+const char *nextline(const char *strline)
 {
 	if (strline==0) return 0;
 	const char *strcr = strchr(strline,'\r');
@@ -96,5 +97,10 @@ char *nextline(const char *strline)
 		streol++;
 	} while (streol[0]=='\r' || streol[0]=='\n');
 	if (streol[0]==0) return 0;
-	return (char *)streol;
+	return streol;
+}
+
+char *nextline(char *strline)
+{
+	return (char*)nextline(strline);
 }
