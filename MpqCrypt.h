@@ -17,7 +17,7 @@ bool InitCryptTable();
 UInt32 HashString(const char *lpszString, UInt32 dwHashType);
 bool EncryptData(UInt8 *lpbyBuffer, UInt32 dwLength, UInt32 dwKey);
 bool DecryptData(UInt8 *lpbyBuffer, UInt32 dwLength, UInt32 dwKey);
-UInt32 DetectFileSeed(UInt32 * block, UInt32 decrypted, UInt32 blocksize);
+UInt32 DetectFileSeed(const UInt32 * block, UInt32 decrypted, UInt32 blocksize);
 
 #endif // #ifndef MPQCRYPT_INCLUDED
 

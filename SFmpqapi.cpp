@@ -1400,7 +1400,7 @@ LCID SFMPQAPI WINAPI SFileSetLocale(LCID nNewLocale)
 	return (LocaleID = nNewLocale);
 }
 
-BOOL SFMPQAPI WINAPI SFileGetBasePath(LPCSTR lpBuffer, DWORD dwBufferLength)
+BOOL SFMPQAPI WINAPI SFileGetBasePath(LPSTR lpBuffer, DWORD dwBufferLength)
 {
 	if (lpBuffer==0) {
 		SetLastError(ERROR_INVALID_PARAMETER);
@@ -2061,7 +2061,7 @@ BOOL SFMPQAPI WINAPI MpqAddWaveToArchive(MPQHANDLE hMPQ, LPCSTR lpSourceFileName
 	return MpqAddFileToArchiveEx(hMPQ,lpSourceFileName,lpDestFileName,dwFlags,0x81,dwQuality);
 }
 
-BOOL SFMPQAPI WINAPI MpqAddFileFromBufferEx(MPQHANDLE hMPQ, LPVOID lpBuffer, DWORD dwLength, LPCSTR lpFileName, DWORD dwFlags, DWORD dwCompressionType, DWORD dwCompressLevel)
+BOOL SFMPQAPI WINAPI MpqAddFileFromBufferEx(MPQHANDLE hMPQ, LPCVOID lpBuffer, DWORD dwLength, LPCSTR lpFileName, DWORD dwFlags, DWORD dwCompressionType, DWORD dwCompressLevel)
 {
 	if (!hMPQ || !lpBuffer || !lpFileName) {
 		SetLastError(ERROR_INVALID_PARAMETER);
@@ -2372,7 +2372,7 @@ BOOL SFMPQAPI WINAPI MpqAddFileFromBufferEx(MPQHANDLE hMPQ, LPVOID lpBuffer, DWO
 	return TRUE;
 }
 
-BOOL SFMPQAPI WINAPI MpqAddFileFromBuffer(MPQHANDLE hMPQ, LPVOID lpBuffer, DWORD dwLength, LPCSTR lpFileName, DWORD dwFlags)
+BOOL SFMPQAPI WINAPI MpqAddFileFromBuffer(MPQHANDLE hMPQ, LPCVOID lpBuffer, DWORD dwLength, LPCSTR lpFileName, DWORD dwFlags)
 {
 	return MpqAddFileFromBufferEx(hMPQ,lpBuffer,dwLength,lpFileName,dwFlags,0x08,0);
 }
